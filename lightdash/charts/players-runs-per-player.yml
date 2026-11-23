@@ -1,0 +1,40 @@
+chartConfig:
+  config:
+    label: Runs per player
+    selectedField: fct_runs_runs_per_player
+  type: big_number
+contentType: chart
+description: Runs started per player who started at least one.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions: []
+  exploreName: fct_runs
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_runs_source
+          values:
+            - simulated
+      id: filters
+  limit: 1
+  metricOverrides:
+    fct_runs_runs_per_player:
+      formatOptions:
+        round: 2
+        type: number
+  metrics:
+    - fct_runs_runs_per_player
+  sorts: []
+  tableCalculations: []
+name: Runs per player
+slug: players-runs-per-player
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_runs_runs_per_player
+tableName: fct_runs
+version: 1

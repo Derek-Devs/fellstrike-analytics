@@ -1,0 +1,48 @@
+chartConfig:
+  config:
+    label: Empty turns in the opening
+    selectedField: fct_turns_opening_empty_turn_share
+  type: big_number
+contentType: chart
+description: >
+  Share of the first 5 player turns of solo Endless runs in which no unit could reach a foe or a hurt ally, of the
+  turns the device measured.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions: []
+  exploreName: fct_turns
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_turns_source
+          values:
+            - simulated
+        - id: mode
+          operator: equals
+          target:
+            fieldId: fct_turns_mode
+          values:
+            - endless
+      id: filters
+  limit: 1
+  metricOverrides:
+    fct_turns_opening_empty_turn_share:
+      formatOptions:
+        round: 1
+        type: percent
+  metrics:
+    - fct_turns_opening_empty_turn_share
+  sorts: []
+  tableCalculations: []
+name: Empty turns in the Endless opening
+slug: endless-opening-empty-turn-share
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_turns_opening_empty_turn_share
+tableName: fct_turns
+version: 1

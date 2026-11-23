@@ -1,0 +1,56 @@
+chartConfig:
+  config:
+    eChartsConfig:
+      series:
+        - encode:
+            xRef:
+              field: fct_experiment_exposures_exposed_date_week
+            yRef:
+              field: fct_experiment_exposures_exposed_players
+          type: bar
+    layout:
+      xField: fct_experiment_exposures_exposed_date_week
+      yField:
+        - fct_experiment_exposures_exposed_players
+  type: cartesian
+contentType: chart
+description: Players first exposed to the A/A test each week, both arms, on simulated data.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_experiment_exposures_exposed_date_week
+  exploreName: fct_experiment_exposures
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_experiment_exposures_source
+          values:
+            - simulated
+        - id: experiment
+          operator: equals
+          target:
+            fieldId: fct_experiment_exposures_experiment_key
+          values:
+            - endless_opening_aa
+      id: filters
+  limit: 500
+  metricOverrides: {}
+  metrics:
+    - fct_experiment_exposures_exposed_players
+  sorts:
+    - descending: false
+      fieldId: fct_experiment_exposures_exposed_date_week
+  tableCalculations: []
+name: A/A exposures by week
+slug: experiment-exposures-weekly
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_experiment_exposures_exposed_date_week
+    - fct_experiment_exposures_exposed_players
+tableName: fct_experiment_exposures
+version: 1

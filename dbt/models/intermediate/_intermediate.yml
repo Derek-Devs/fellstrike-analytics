@@ -1,0 +1,211 @@
+# Intermediate: events put together into the things players do. The tests check each model's grain.
+
+models:
+  - name: int_data_bounds
+    description: >
+      One row per source: the span its events cover. Rules that depend on "now" (a run is dropped after 7 quiet days,
+      a cohort is ready for its day 7 return) count back from the source's own newest event, never from today's date,
+      so a rebuild gives the same answers later and each source is judged by its own end.
+    columns:
+      - name: source
+        description: "{{ doc('source') }}"
+        data_tests: [unique, not_null]
+      - name: first_event_at
+        description: The source's oldest event_at.
+      - name: last_event_at
+        description: The source's newest event_at.
+      - name: last_complete_date
+        description: >
+          The day before the newest event's day. The newest day is usually cut off partway, so retention counts only
+          days up to this one as fully seen.
+
+  - name: int_sessions
+    description: >
+      One row per player session, rebuilt from event times: a gap of more than 30 minutes (the session_gap_minutes
+      variable) between a player's events starts a new one. The device's own session IDs are kept as a count.
+    columns:
+      - name: session_id
+        description: A key made from the player and the session's number.
+        data_tests: [unique, not_null]
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+        data_tests: [not_null]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: session_number
+        description: The player's sessions counted from 1.
+      - name: started_at
+        description: The session's first event_at.
+      - name: ended_at
+        description: The session's last event_at.
+      - name: started_date
+        description: The UTC day the session started.
+      - name: session_minutes
+        description: Minutes from the session's first event to its last. A session of one event has 0.
+      - name: events
+        description: Events in the session.
+      - name: device_sessions
+        description: >
+          Distinct device session IDs inside it. Usually 1. More means the device renewed its ID within what the
+          gap rule calls one session, for example across two tabs.
+
+  - name: int_runs
+    description: >
+      One row per run: its run_start joined to its run_end, with how far it got. With no run_end, a run is dropped
+      once its last event is more than 7 days (the run_quiet_days variable) older than the source's newest event.
+    columns:
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+        data_tests: [unique, not_null]
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: started_at
+        description: The run_start's event_at.
+      - name: started_date
+        description: The UTC day the run started.
+      - name: mode
+        description: "{{ doc('mode') }}"
+      - name: kind
+        description: The game's own kind of run.
+      - name: difficulty
+        description: "{{ doc('difficulty') }}"
+      - name: players
+        description: People playing the run on this device's side.
+      - name: ruleset
+        description: The rules the run is played under.
+      - name: seed
+        description: The run's random seed.
+      - name: build
+        description: "{{ doc('build') }}"
+      - name: edition
+        description: "{{ doc('edition') }}"
+      - name: site
+        description: "{{ doc('site') }}"
+      - name: ended_at
+        description: The run_end's event_at. Null when the run has no end.
+      - name: stage_reached
+        description: The stage the run ended on, from run_end.
+      - name: battles_won
+        description: Battles won, from run_end.
+      - name: visible_s
+        description: Seconds on screen, from run_end.
+      - name: last_event_at
+        description: The newest event_at of any event in the run.
+      - name: events
+        description: Events that carry the run's ID.
+      - name: battles_started
+        description: Battles the run began.
+      - name: player_turns
+        description: "{{ doc('player_turns') }}"
+      - name: resumes
+        description: Times the run was carried on in a later visit.
+      - name: run_result
+        description: "{{ doc('run_result') }}"
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [won, lost, draw, abandoned, dropped, in_progress]
+      - name: reported_run_turns
+        description: The tracker's own turn count from run_end. A warn test checks it equals player_turns.
+
+  - name: int_battles
+    description: >
+      One row per battle: its battle_start joined to its battle_end, with the player's turns in it. Result is null
+      when no end has arrived.
+    columns:
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests: [unique, not_null]
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: started_at
+        description: The battle_start's event_at.
+      - name: started_date
+        description: The UTC day the battle started.
+      - name: stage
+        description: The run's stage.
+      - name: stage_kind
+        description: The game's kind of stage.
+      - name: objective
+        description: How the battle is won.
+      - name: turn_format
+        description: The turn order the battle uses.
+      - name: is_resumed
+        description: True when tracking first saw the battle partway through.
+      - name: unit_count
+        description: Units on the field as the battle began.
+      - name: ended_at
+        description: The battle_end's event_at.
+      - name: result
+        description: "`won`, `lost`, `draw` or `left`, or null with no end yet."
+      - name: reason
+        description: How it was decided.
+      - name: rounds
+        description: Rounds the battle lasted.
+      - name: visible_s
+        description: Seconds on screen.
+      - name: player_turns
+        description: The player's turns in the battle.
+
+  - name: int_turns
+    description: >
+      One row per player turn: turn_start paired with its turn_end on the battle and round. A start with no end is
+      kept, with is_closed false.
+    columns:
+      - name: turn_id
+        description: A key made from the battle and the round.
+        data_tests: [unique, not_null]
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: turn_number
+        description: "{{ doc('turn_number') }}"
+      - name: run_turn
+        description: "{{ doc('run_turn') }}"
+      - name: started_at
+        description: The turn_start's event_at.
+      - name: started_date
+        description: The UTC day the turn started.
+      - name: units_ready
+        description: The player's units that could act.
+      - name: units_with_target
+        description: "{{ doc('units_with_target') }}"
+      - name: ended_at
+        description: The turn_end's event_at.
+      - name: duration_ms
+        description: Time on screen, from turn_end.
+      - name: actions_taken
+        description: The player's commands in the turn.
+      - name: meaningful_actions
+        description: Commands that did something besides walk.
+      - name: ended_by
+        description: What ended the turn.
+      - name: is_closed
+        description: True when the turn's turn_end arrived.
+
+  - name: int_player_days
+    description: One row per player and UTC day on which they had any event.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player_id, activity_date]
+    columns:
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: activity_date
+        description: The UTC day.
+      - name: events
+        description: The player's events that day.

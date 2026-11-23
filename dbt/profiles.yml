@@ -1,0 +1,30 @@
+# Where dbt finds the warehouse. Nothing secret is written here: every value comes from analytics/.env, which git
+# ignores. dbt reads this file because it is in the folder dbt runs from.
+fellstrike:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: 127.0.0.1
+      port: "{{ env_var('WAREHOUSE_PORT') | int }}"
+      dbname: "{{ env_var('WAREHOUSE_DB') }}"
+      user: "{{ env_var('WAREHOUSE_USER') }}"
+      password: "{{ env_var('WAREHOUSE_PASSWORD') }}"
+      # Models go to the staging, intermediate and marts schemas (macros/generate_schema_name.sql). Tests that
+      # store their failures use this one.
+      schema: dbt
+      threads: 4
+    # Lightdash's login, for the Lightdash CLI in Docker (docs/analytics-design.md, section 9.2). On the Docker
+    # network the warehouse is called warehouse and listens on 5432. The login can read the marts and nothing else.
+    # `lightdash deploy --create --target lightdash` hands it to Lightdash.
+    lightdash:
+      type: postgres
+      host: warehouse
+      port: 5432
+      dbname: "{{ env_var('WAREHOUSE_DB') }}"
+      user: lightdash_reader
+      password: "{{ env_var('LIGHTDASH_WAREHOUSE_PASSWORD', '') }}"
+      schema: marts
+      threads: 4
+      # The warehouse has no TLS certificate, and this traffic never leaves Docker's own network on this PC.
+      sslmode: disable

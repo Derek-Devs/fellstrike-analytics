@@ -1,0 +1,62 @@
+chartConfig:
+  config:
+    eChartsConfig:
+      series:
+        - encode:
+            xRef:
+              field: fct_unit_defeats_turn_number
+            yRef:
+              field: fct_unit_defeats_defeats
+          type: bar
+    layout:
+      xField: fct_unit_defeats_turn_number
+      yField:
+        - fct_unit_defeats_defeats
+  type: cartesian
+contentType: chart
+description: The player's units that fell in each round of a battle, for the first 30 rounds.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_unit_defeats_turn_number
+  exploreName: fct_unit_defeats
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_unit_defeats_source
+          values:
+            - simulated
+        - id: player-fell
+          operator: equals
+          target:
+            fieldId: fct_unit_defeats_unit_side
+          values:
+            - player
+        - id: first-thirty
+          operator: lessThanOrEqual
+          target:
+            fieldId: fct_unit_defeats_turn_number
+          values:
+            - 30
+      id: filters
+  limit: 500
+  metricOverrides: {}
+  metrics:
+    - fct_unit_defeats_defeats
+  sorts:
+    - descending: false
+      fieldId: fct_unit_defeats_turn_number
+  tableCalculations: []
+name: Player units fallen by round
+slug: combat-falls-by-round
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_unit_defeats_turn_number
+    - fct_unit_defeats_defeats
+tableName: fct_unit_defeats
+version: 1

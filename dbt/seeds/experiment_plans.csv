@@ -1,0 +1,3 @@
+experiment_key,source,planned_start_date,planned_end_date,planned_players_per_arm,note
+endless_opening_aa,simulated,2026-09-07,2026-11-15,600,"The A/A test: both arms play today's opening, so the readout should find nothing"
+endless_opening_v1,real,,,20,"The pilot. Its dates are filled in at launch, before any player is exposed"

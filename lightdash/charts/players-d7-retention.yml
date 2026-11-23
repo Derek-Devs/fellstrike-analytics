@@ -1,0 +1,40 @@
+chartConfig:
+  config:
+    label: D7 retention, all cohorts
+    selectedField: fct_player_retention_d7_retention
+  type: big_number
+contentType: chart
+description: Share of eligible players active on the 7th day after their first day.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions: []
+  exploreName: fct_player_retention
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_player_retention_source
+          values:
+            - simulated
+      id: filters
+  limit: 1
+  metricOverrides:
+    fct_player_retention_d7_retention:
+      formatOptions:
+        round: 1
+        type: percent
+  metrics:
+    - fct_player_retention_d7_retention
+  sorts: []
+  tableCalculations: []
+name: D7 retention
+slug: players-d7-retention
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_player_retention_d7_retention
+tableName: fct_player_retention
+version: 1

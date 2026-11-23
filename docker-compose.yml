@@ -1,0 +1,140 @@
+# The analytics warehouse and Lightdash (docs/analytics-design.md, sections 7 and 9). Settings come from
+# analytics/.env (copy .env.example and change every password). Only this PC can reach them: the ports are bound to
+# 127.0.0.1. From the analytics folder:
+#   docker compose up -d warehouse                  the warehouse alone, for dbt and MetricFlow
+#   docker compose --profile lightdash up -d        the warehouse and Lightdash, on http://localhost:8080
+#   docker compose run --rm lightdash-cli lightdash ...     the Lightdash CLI
+name: fellstrike-analytics
+
+services:
+  warehouse:
+    image: postgres:16.10
+    # More memory than Postgres's small defaults, so dbt's window functions over millions of events sort in memory
+    # instead of on disk. The PC has plenty to spare.
+    command: postgres -c shared_buffers=1GB -c work_mem=128MB -c maintenance_work_mem=512MB
+    environment:
+      POSTGRES_DB: ${WAREHOUSE_DB}
+      POSTGRES_USER: ${WAREHOUSE_USER}
+      POSTGRES_PASSWORD: ${WAREHOUSE_PASSWORD}
+    ports:
+      - "127.0.0.1:${WAREHOUSE_PORT}:5432"
+    volumes:
+      - warehouse:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 12
+
+  # Lightdash's read-only login to the warehouse: runs lightdash/reader.sql once, then exits.
+  lightdash-reader:
+    profiles: [lightdash]
+    image: postgres:16.10
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    environment:
+      PGHOST: warehouse
+      PGUSER: ${WAREHOUSE_USER}
+      PGPASSWORD: ${WAREHOUSE_PASSWORD}
+      PGDATABASE: ${WAREHOUSE_DB}
+      READER_PASSWORD: ${LIGHTDASH_WAREHOUSE_PASSWORD}
+    volumes:
+      - ./lightdash/reader.sql:/reader.sql:ro
+    command: ["sh", "-c", "psql -q -v ON_ERROR_STOP=1 -v pw=\"$$READER_PASSWORD\" -f /reader.sql"]
+    restart: "no"
+
+  # Lightdash's own database: its users, charts and dashboards, and the warehouse login (encrypted with
+  # LIGHTDASH_SECRET). Postgres with pgvector, as Lightdash's own compose file uses.
+  lightdash-db:
+    profiles: [lightdash]
+    image: pgvector/pgvector:0.8.6-pg15
+    environment:
+      POSTGRES_DB: lightdash
+      POSTGRES_USER: lightdash
+      POSTGRES_PASSWORD: ${LIGHTDASH_DB_PASSWORD}
+    volumes:
+      - lightdash-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lightdash -d lightdash"]
+      interval: 5s
+      retries: 12
+
+  # S3-style storage, which Lightdash needs to start. It keeps query results and exports for a day.
+  lightdash-minio:
+    profiles: [lightdash]
+    image: coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
+    entrypoint: ["/bin/sh", "/init-minio.sh"]
+    environment:
+      MINIO_ROOT_USER: lightdash
+      MINIO_ROOT_PASSWORD: ${LIGHTDASH_MINIO_PASSWORD}
+    volumes:
+      - ./lightdash/init-minio.sh:/init-minio.sh:ro
+      - lightdash-minio:/data
+
+  lightdash:
+    profiles: [lightdash]
+    image: lightdash/lightdash:3.366.0
+    platform: linux/amd64
+    depends_on:
+      lightdash-db:
+        condition: service_healthy
+      lightdash-minio:
+        condition: service_started
+      lightdash-reader:
+        condition: service_completed_successfully
+    environment:
+      PGHOST: lightdash-db
+      PGPORT: "5432"
+      PGUSER: lightdash
+      PGPASSWORD: ${LIGHTDASH_DB_PASSWORD}
+      PGDATABASE: lightdash
+      LIGHTDASH_SECRET: ${LIGHTDASH_SECRET}
+      SITE_URL: http://localhost:8080
+      PORT: "8080"
+      SECURE_COOKIES: "false"
+      TRUST_PROXY: "false"
+      LIGHTDASH_LOG_LEVEL: info
+      LIGHTDASH_INSTALL_TYPE: docker_image
+      LIGHTDASH_MIGRATION_EXECUTION_MODE: compose
+      SCHEDULER_ENABLED: "true"
+      S3_ENDPOINT: http://lightdash-minio:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: lightdash
+      S3_ACCESS_KEY: lightdash
+      S3_SECRET_KEY: ${LIGHTDASH_MINIO_PASSWORD}
+      S3_FORCE_PATH_STYLE: "true"
+      # Nothing leaves this PC: no product telemetry, no update checks, no changelog widget.
+      RUDDERSTACK_ANALYTICS_DISABLED: "true"
+      LIGHTDASH_DISABLE_UPDATE_CHECK: "true"
+      HEADWAY_ENABLED: "false"
+    # Lightdash's own compose file also runs a headless browser, which renders images for scheduled deliveries. This
+    # project doesn't use those, and it saves about 4 GB of memory.
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  # The Lightdash CLI with dbt (lightdash/Dockerfile.cli). It deploys the dbt project to Lightdash and moves charts
+  # and dashboards between Lightdash and lightdash/ as files. Run with docker compose run --rm lightdash-cli.
+  lightdash-cli:
+    profiles: [cli]
+    build:
+      context: ./lightdash
+      dockerfile: Dockerfile.cli
+    image: fellstrike-lightdash-cli:3.366.0
+    environment:
+      LIGHTDASH_URL: http://lightdash:8080
+      LIGHTDASH_API_KEY: ${LIGHTDASH_API_KEY}
+      LIGHTDASH_PROJECT: ${LIGHTDASH_PROJECT}
+      WAREHOUSE_DB: ${WAREHOUSE_DB}
+      WAREHOUSE_USER: ${WAREHOUSE_USER}
+      WAREHOUSE_PASSWORD: ${WAREHOUSE_PASSWORD}
+      WAREHOUSE_PORT: ${WAREHOUSE_PORT}
+      LIGHTDASH_WAREHOUSE_PASSWORD: ${LIGHTDASH_WAREHOUSE_PASSWORD}
+      DBT_PROFILES_DIR: /dbt
+    volumes:
+      - ./dbt:/dbt
+      - ./lightdash:/lightdash
+
+volumes:
+  warehouse:
+  lightdash-db:
+  lightdash-minio:

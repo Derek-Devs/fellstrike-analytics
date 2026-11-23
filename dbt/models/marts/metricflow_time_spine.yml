@@ -1,0 +1,14 @@
+models:
+  - name: metricflow_time_spine
+    description: One row per day from 2026 to 2030, the calendar MetricFlow joins metrics to.
+    # Lightdash: a calendar, not a table to explore.
+    config:
+      meta:
+        hidden: true
+    time_spine:
+      standard_granularity_column: date_day
+    columns:
+      - name: date_day
+        description: The day.
+        granularity: day
+        data_tests: [unique, not_null]

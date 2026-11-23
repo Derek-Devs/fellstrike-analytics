@@ -1,0 +1,109 @@
+models:
+  - name: experiment_readout
+    description: >
+      One row per experiment, source and metric: each arm's value, the sample ratio check, and the difference with its
+      95% interval. The effect stays empty until the plan's end date (experiment_plans) is fully in the data and the
+      split passes the sample ratio check, so nobody can peek. Only players first exposed between the plan's dates
+      count. Real and simulated rows are never combined.
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "ci_low <= ci_high or ci_low is null"
+
+    # Lightdash: every chart on this table starts filtered to one source, and the filter can't be removed, only
+    # changed. Simulated until real players arrive.
+    config:
+      meta:
+        default_filters:
+          - source: simulated
+            required: true
+
+    columns:
+      - name: readout_id
+        description: A key made from the experiment, the source and the metric.
+        data_tests: [unique, not_null]
+      - name: experiment_key
+        description: "{{ doc('experiment_key') }}"
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: metric
+        description: The metric compared.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [opening_empty_share, early_quit_rate, passed_opening_rate, first_run_win_rate,
+                         founder_fell_rate, session_minutes_7d]
+      - name: metric_role
+        description: primary, secondary or guardrail, as the plan names them.
+      - name: metric_order
+        description: The plan's order, primary first, for sorting.
+      - name: kind
+        description: mean (compared by Welch's difference in means) or proportion (difference in proportions).
+      - name: planned_start_date
+        description: The plan's first day of exposure.
+      - name: planned_end_date
+        description: The plan's last day of exposure, and the day the readout opens.
+      - name: planned_players_per_arm
+        description: The players per arm the plan expects.
+      - name: data_through
+        description: The source's last complete day of data.
+      - name: control_exposed
+        description: Players exposed in the control arm.
+      - name: treatment_exposed
+        description: Players exposed in the treatment arm.
+      - name: sample_ratio_chi_square
+        description: (n_c - n_t)^2 / (n_c + n_t), the chi-square of the split against 50/50.
+        config:
+          meta:
+            dimension:
+              label: Sample ratio chi-square
+              round: 2
+      - name: sample_ratio_ok
+        description: True when the chi-square is 10.83 or less (p of 0.001 or more).
+      - name: is_complete
+        description: True once the data reaches the plan's end date.
+      - name: control_n
+        description: Control players the metric counts (for a rate, those whose first run has finished).
+      - name: treatment_n
+        description: Treatment players the metric counts.
+      - name: control_value
+        description: The control arm's mean or rate. Empty until the readout opens.
+        config:
+          meta:
+            dimension:
+              round: 4
+      - name: treatment_value
+        description: The treatment arm's mean or rate. Empty until the readout opens.
+        config:
+          meta:
+            dimension:
+              round: 4
+      - name: difference
+        description: Treatment minus control. Empty until the readout opens.
+        config:
+          meta:
+            dimension:
+              round: 4
+      - name: ci_low
+        description: The difference minus 1.96 standard errors.
+        config:
+          meta:
+            dimension:
+              label: 95% low
+              round: 4
+      - name: ci_high
+        description: The difference plus 1.96 standard errors.
+        config:
+          meta:
+            dimension:
+              label: 95% high
+              round: 4
+      - name: z
+        description: The difference over its standard error. Above 1.96 or below -1.96 is significant at 5%.
+        config:
+          meta:
+            dimension:
+              label: z
+              round: 2
+      - name: verdict
+        description: In words, what the row can say so far.

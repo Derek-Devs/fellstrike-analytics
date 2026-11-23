@@ -1,0 +1,256 @@
+models:
+  - name: fct_runs
+    description: >
+      One row per run, with its result and 0/1 flags for every rate. Rates use matured runs: those that ended, or have
+      been quiet long enough to count as dropped. The opening is the first 5 player turns (the opening_turns variable).
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "is_early_quit <= is_quit and is_quit <= is_matured and is_completed <= is_matured"
+
+    # Lightdash: every chart on this table starts filtered to one source, and the filter can't be removed, only
+    # changed. Simulated until real players arrive.
+    config:
+      meta:
+        default_filters:
+          - source: simulated
+            required: true
+
+    # The semantic model: MetricFlow reads the entity, dimensions and metrics below. Metrics count runs by the day
+    # they started.
+    semantic_model:
+      enabled: true
+    agg_time_dimension: started_date
+    metrics:
+      - name: runs_started
+        label: Runs started
+        description: Runs begun.
+        type: simple
+        agg: count
+        expr: 1
+      - name: run_players
+        label: Players who started a run
+        description: Distinct players who began at least one run.
+        type: simple
+        agg: count_distinct
+        expr: player_id
+      - name: matured_runs
+        label: Matured runs
+        description: Runs with a final result, either ended or quiet for 7 days. The run rates divide by it.
+        type: simple
+        agg: sum
+        expr: is_matured
+      - name: completed_runs
+        label: Completed runs
+        description: Runs played to a result (won, lost or drawn).
+        type: simple
+        agg: sum
+        expr: is_completed
+      - name: won_runs
+        label: Won runs
+        description: Runs won.
+        type: simple
+        agg: sum
+        expr: is_won
+      - name: median_turns_per_run
+        label: Median turns per run
+        description: The median of player turns in matured runs.
+        type: simple
+        agg: median
+        expr: matured_player_turns
+      - name: endless_matured_runs
+        label: Matured Endless runs
+        description: Matured solo Endless runs. The Endless rates divide by it.
+        type: simple
+        agg: sum
+        expr: endless_matured
+      - name: endless_early_quits
+        label: Endless runs quit in the opening
+        description: Solo Endless runs abandoned or dropped within their first 5 player turns.
+        type: simple
+        agg: sum
+        expr: endless_early_quit
+      - name: endless_opening_passes
+        label: Endless runs past the opening
+        description: Matured solo Endless runs that reached player turn 6, however they ended.
+        type: simple
+        agg: sum
+        expr: endless_passed_opening
+      - name: runs_per_player
+        label: Runs per player
+        description: Runs started per player who started one.
+        type: ratio
+        numerator: runs_started
+        denominator: run_players
+      - name: run_completion_rate
+        label: Run completion rate
+        description: Share of matured runs played to a result (won, lost or drawn) instead of quit.
+        type: ratio
+        numerator: completed_runs
+        denominator: matured_runs
+      - name: run_win_rate
+        label: Run win rate
+        description: Share of matured runs won.
+        type: ratio
+        numerator: won_runs
+        denominator: matured_runs
+      - name: endless_early_quit_rate
+        label: Endless early quit rate
+        description: >
+          Share of matured solo Endless runs quit within the opening (5 player turns or fewer). A run lost in the
+          opening, for example because the founder fell, is not a quit.
+        type: ratio
+        numerator: endless_early_quits
+        denominator: endless_matured_runs
+      - name: endless_passed_opening_rate
+        label: Endless runs past the opening, share
+        description: >
+          Share of matured solo Endless runs that reached player turn 6. A run lost in the opening lowers it, so it
+          answers a different question from the early quit rate.
+        type: ratio
+        numerator: endless_opening_passes
+        denominator: endless_matured_runs
+
+    columns:
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+        data_tests: [unique, not_null]
+        entity:
+          type: primary
+          name: run
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_players')
+                field: player_id
+      - name: source
+        description: "{{ doc('source') }}"
+        entity:
+          type: foreign
+          name: source
+      - name: started_at
+        description: The run_start's event_at.
+      - name: started_date
+        description: The UTC day the run started.
+        granularity: day
+        dimension:
+          type: time
+      - name: ended_at
+        description: The run_end's event_at. Null when the run has no end.
+      - name: last_event_at
+        description: The newest event_at of any event in the run.
+      - name: mode
+        description: "{{ doc('mode') }}"
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [endless, endless_coop, daily, versus_bot, versus_local, versus_online, tutorial, tourney]
+        dimension:
+          type: categorical
+      - name: kind
+        description: The game's own kind of run.
+        dimension:
+          type: categorical
+      - name: difficulty
+        description: "{{ doc('difficulty') }}"
+        dimension:
+          type: categorical
+      - name: players
+        description: People playing the run on this device's side.
+        dimension:
+          type: categorical
+      - name: ruleset
+        description: The rules the run is played under.
+        dimension:
+          type: categorical
+      - name: build
+        description: "{{ doc('build') }}"
+        dimension:
+          type: categorical
+      - name: edition
+        description: "{{ doc('edition') }}"
+        dimension:
+          type: categorical
+      - name: site
+        description: "{{ doc('site') }}"
+        dimension:
+          type: categorical
+      - name: run_result
+        description: "{{ doc('run_result') }}"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [won, lost, draw, abandoned, dropped, in_progress]
+        dimension:
+          type: categorical
+      - name: stage_reached
+        description: The stage the run ended on, from run_end.
+        dimension:
+          type: categorical
+      - name: battles_started
+        description: Battles the run began.
+      - name: battles_won
+        description: Battles won, from run_end.
+      - name: player_turns
+        description: "{{ doc('player_turns') }}"
+      - name: reported_run_turns
+        description: The tracker's own turn count from run_end.
+      - name: resumes
+        description: Times the run was carried on in a later visit.
+      - name: visible_s
+        description: Seconds on screen, from run_end.
+      - name: player_run_number
+        description: The player's runs counted from 1, by start time.
+        dimension:
+          type: categorical
+      - name: is_first_run
+        description: 1 for the player's first run.
+        dimension:
+          type: categorical
+      - name: cohort_date
+        description: "{{ doc('cohort_date') }}"
+        granularity: day
+        dimension:
+          type: time
+      - name: days_since_cohort
+        description: "{{ doc('days_since_cohort') }}"
+        dimension:
+          type: categorical
+      - name: experiment_key
+        description: The experiment the run was exposed to, if any.
+        dimension:
+          type: categorical
+      - name: experiment_variant
+        description: The run's arm, if it was exposed.
+        dimension:
+          type: categorical
+      - name: is_matured
+        description: "{{ doc('is_matured') }}"
+      - name: is_completed
+        description: 1 when the run was played to a result (won, lost or drawn).
+      - name: is_won
+        description: 1 when the run was won.
+      - name: is_quit
+        description: 1 when the run was abandoned or dropped.
+      - name: is_early_quit
+        description: >
+          1 when the run was quit within the opening (player_turns of 5 or fewer). A run lost in the opening, for
+          example because the founder fell, is not a quit.
+      - name: passed_opening
+        description: 1 when the run reached a player turn past the opening (turn 6 or later), however it ended.
+      - name: is_endless
+        description: 1 for solo Endless runs (mode endless), the experiment's population.
+        dimension:
+          type: categorical
+      - name: matured_player_turns
+        description: player_turns for matured runs, null otherwise, for the median turns per run.
+      - name: endless_matured
+        description: 1 for matured solo Endless runs. The denominator of the Endless rates.
+      - name: endless_early_quit
+        description: 1 for solo Endless runs quit within the opening.
+      - name: endless_passed_opening
+        description: 1 for matured solo Endless runs that reached a turn past the opening.

@@ -1,0 +1,67 @@
+chartConfig:
+  config:
+    eChartsConfig:
+      series:
+        - encode:
+            xRef:
+              field: fct_player_days_activity_date_week
+            yRef:
+              field: fct_player_days_new_players
+          stack: players
+          type: bar
+        - encode:
+            xRef:
+              field: fct_player_days_activity_date_week
+            yRef:
+              field: fct_player_days_returning_players
+          stack: players
+          type: bar
+    layout:
+      xField: fct_player_days_activity_date_week
+      yField:
+        - fct_player_days_new_players
+        - fct_player_days_returning_players
+  type: cartesian
+contentType: chart
+description: Each week's active players, split into those on their first day and those who came back.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_player_days_activity_date_week
+  exploreName: fct_player_days
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_player_days_source
+          values:
+            - simulated
+        - id: complete-days
+          operator: equals
+          target:
+            fieldId: fct_player_days_is_complete_day
+          values:
+            - 1
+      id: filters
+  limit: 500
+  metricOverrides: {}
+  metrics:
+    - fct_player_days_new_players
+    - fct_player_days_returning_players
+  sorts:
+    - descending: false
+      fieldId: fct_player_days_activity_date_week
+  tableCalculations: []
+name: New and returning players by week
+slug: players-new-and-returning
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_player_days_activity_date_week
+    - fct_player_days_new_players
+    - fct_player_days_returning_players
+tableName: fct_player_days
+version: 1

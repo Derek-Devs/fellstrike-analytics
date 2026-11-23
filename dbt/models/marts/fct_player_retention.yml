@@ -1,0 +1,112 @@
+models:
+  - name: fct_player_retention
+    description: >
+      One row per player: whether they came back on day 1 and day 7 after their cohort date, and whether those days
+      are fully in the data yet. D1 retention is sum(retained_d1) / sum(d1_eligible), and D7 the same, so players first
+      seen too recently never count as lost. Day N means active on exactly the Nth UTC day after the cohort date.
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "retained_d1 <= d1_eligible and retained_d7 <= d7_eligible"
+
+    # Lightdash: every chart on this table starts filtered to one source, and the filter can't be removed, only
+    # changed. Simulated until real players arrive.
+    config:
+      meta:
+        default_filters:
+          - source: simulated
+            required: true
+
+    # Metrics count players by their cohort date, so D1 retention by metric_time__week is retention by cohort week.
+    semantic_model:
+      enabled: true
+    agg_time_dimension: cohort_date
+    metrics:
+      - name: cohort_players
+        label: Players in the cohort
+        description: Players whose first day falls in the period.
+        type: simple
+        agg: count
+        expr: 1
+      - name: d1_eligible_players
+        label: Players eligible for D1
+        description: Players whose day after the cohort date is fully in the data.
+        type: simple
+        agg: sum
+        expr: d1_eligible
+      - name: d1_retained_players
+        label: Players back on day 1
+        description: Eligible players active on the day after their cohort date.
+        type: simple
+        agg: sum
+        expr: retained_d1
+      - name: d7_eligible_players
+        label: Players eligible for D7
+        description: Players whose 7th day after the cohort date is fully in the data.
+        type: simple
+        agg: sum
+        expr: d7_eligible
+      - name: d7_retained_players
+        label: Players back on day 7
+        description: Eligible players active on the 7th day after their cohort date.
+        type: simple
+        agg: sum
+        expr: retained_d7
+      - name: d1_retention
+        label: D1 retention
+        description: >
+          Share of eligible players active on the day after their cohort date. Players first seen too recently are
+          left out rather than counted as lost.
+        type: ratio
+        numerator: d1_retained_players
+        denominator: d1_eligible_players
+      - name: d7_retention
+        label: D7 retention
+        description: Share of eligible players active on the 7th day after their cohort date.
+        type: ratio
+        numerator: d7_retained_players
+        denominator: d7_eligible_players
+
+    columns:
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_players')
+                field: player_id
+        entity:
+          type: primary
+          name: player
+      - name: source
+        description: "{{ doc('source') }}"
+        entity:
+          type: foreign
+          name: source
+      - name: cohort_date
+        description: "{{ doc('cohort_date') }}"
+        granularity: day
+        dimension:
+          type: time
+      - name: first_mode
+        description: The mode of the player's first run.
+        dimension:
+          type: categorical
+      - name: experiment_key
+        description: "{{ doc('experiment_key') }}"
+        dimension:
+          type: categorical
+      - name: experiment_variant
+        description: "{{ doc('experiment_variant') }}"
+        dimension:
+          type: categorical
+      - name: d1_eligible
+        description: 1 when the day after the cohort date is fully in the data.
+      - name: retained_d1
+        description: 1 when eligible and active on the day after the cohort date.
+      - name: d7_eligible
+        description: 1 when the 7th day after the cohort date is fully in the data.
+      - name: retained_d7
+        description: 1 when eligible and active on the 7th day after the cohort date.

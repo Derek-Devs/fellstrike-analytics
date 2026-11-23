@@ -1,0 +1,80 @@
+# Simulated players (docs/analytics-design.md, section 11).
+#
+# The game's own rules and bots play every battle of a simulated run: every blow, fall, round and empty turn is real.
+# The numbers below decide what the rules can't: who the players are, when they come back, how long they think and when
+# they quit. They are assumptions, not measurements. Each one says why it is what it is, and anything built on them
+# (retention, abandonment, the experiment's effect) shows these assumptions, not real players.
+#
+# Read by game/scripts/simplay.ts. The same seed and these same numbers always give the same events.
+
+seed: 2026
+players: 1200
+
+calendar:
+  # First visits are spread evenly over 8 weeks from a Monday.
+  first_visit_start: "2026-09-07"
+  first_visit_weeks: 8
+  # Nothing happens after this day. It is a week before real tracking began (2026-11-23), so simulated and real
+  # events never share a date.
+  last_day: "2026-11-15"
+
+# How the company is played: the bot gate's three personas, in equal thirds, which the gate calls "a player"
+# (docs/bots-versatile.md). Steady is careful, Brawler aggressive, Careless sloppy.
+personas:
+  steady: 1
+  brawler: 1
+  careless: 1
+
+# Most players take Normal. A few try Hard.
+difficulty:
+  normal: 0.85
+  hard: 0.15
+
+returning:
+  # The chance of a session on the day after the first visit. Free games lose most new players within days.
+  daily_chance: 0.45
+  # That chance shrinks by this factor each day after.
+  daily_decay: 0.93
+  # Quitting from boredom (below) makes coming back less likely: future chances are multiplied by this.
+  after_bored_quit: 0.7
+
+session:
+  # How long a player means to play, in minutes (a lognormal: half play less than the median).
+  minutes_median: 25
+  minutes_spread: 0.6
+  # When a run ends with time left, the chance of starting another.
+  another_run: 0.6
+  # A run left partway is continued at the next session with this chance, and abandoned otherwise.
+  resume_run: 0.75
+
+# Seconds from a move becoming the player's to making it (a lognormal median and spread). Careful players think longer.
+thinking:
+  steady: [6, 0.5]
+  brawler: [4, 0.5]
+  careless: [2.5, 0.6]
+
+# Seconds each move takes on screen, any side's, and the time in camp between battles (a lognormal median and spread).
+animation_seconds: 0.9
+camp_seconds: [40, 0.6]
+
+# The one assumption that ties quitting to the game: before each of the player's turns, the chance they close the tab
+# is `base` plus `per_empty_turn_in_a_row` for each empty turn in a row (a turn where no unit can reach a target).
+# A change that leaves fewer empty turns lowers simulated quitting by itself, through the real rules. How much it lowers
+# it is set by `per_empty_turn_in_a_row`, which we choose: the simulated experiment can test the pipeline and the
+# analysis on an effect of known size, never whether a design change works for people.
+quitting:
+  base: 0.004
+  per_empty_turn_in_a_row: 0.03
+
+devices:
+  # Some devices' clocks are wrong. The pipeline corrects for it (docs/analytics-design.md, section 4.1).
+  clock_skew_share: 0.1
+  clock_skew_minutes: 20
+  # The time from a batch leaving the device to the server receiving it, in milliseconds (a range).
+  latency_ms: [60, 400]
+
+experiment:
+  # An A/A test: players are split into arms exactly as the real experiment will split them, but both arms play
+  # today's opening. It should find no difference and no sample ratio mismatch. The real test is Phase 8.
+  key: endless_opening_aa
+  treatment_changes_rules: false

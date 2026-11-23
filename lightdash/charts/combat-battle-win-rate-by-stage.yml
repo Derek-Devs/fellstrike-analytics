@@ -1,0 +1,62 @@
+chartConfig:
+  config:
+    eChartsConfig:
+      series:
+        - encode:
+            xRef:
+              field: fct_battles_stage
+            yRef:
+              field: fct_battles_battle_win_rate
+          type: line
+    layout:
+      xField: fct_battles_stage
+      yField:
+        - fct_battles_battle_win_rate
+  type: cartesian
+contentType: chart
+description: Share of decided solo Endless battles the player won, by the run's stage.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_battles_stage
+  exploreName: fct_battles
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_battles_source
+          values:
+            - simulated
+        - id: mode
+          operator: equals
+          target:
+            fieldId: fct_battles_mode
+          values:
+            - endless
+      id: filters
+  limit: 500
+  metricOverrides:
+    fct_battles_battle_win_rate:
+      formatOptions:
+        round: 1
+        type: percent
+  metrics:
+    - fct_battles_battle_win_rate
+    - fct_battles_battles_decided
+  sorts:
+    - descending: false
+      fieldId: fct_battles_stage
+  tableCalculations: []
+name: Endless battle win rate by stage
+slug: combat-battle-win-rate-by-stage
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_battles_stage
+    - fct_battles_battle_win_rate
+    - fct_battles_battles_decided
+tableName: fct_battles
+version: 1

@@ -1,0 +1,42 @@
+sources:
+  - name: raw
+    description: >
+      The tables analytics/load/load_events.py writes. Real and simulated events never share a table, and
+      stg_events is the one model that reads both.
+    schema: raw
+    tables:
+      - name: events_real
+        description: >
+          Real play events, one row each, as the game server stored them, downloaded by `node infra/deploy.mjs events`
+          and loaded with the file they came from. event_id is the primary key, so loading a file twice adds nothing.
+        columns:
+          - name: event_id
+            data_tests: [unique, not_null]
+
+      - name: events_simulated
+        description: >
+          Simulated play events from game/scripts/simplay.ts: bot-played runs on the game's own rules, with an assumed
+          behavior model (analytics/sim/behavior.yaml). Same columns as events_real. site is always "sim".
+        columns:
+          - name: event_id
+            data_tests: [unique, not_null]
+
+      - name: loads
+        description: >
+          One row per file loaded: when, how many events it held and how many were new. The freshness check reads it
+          for real data. A week with nobody playing is normal for a small game, so the check watches the exports,
+          which should keep coming, rather than the events.
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 2, period: day}
+            error_after: {count: 7, period: day}
+            filter: "source = 'real'"
+        columns:
+          - name: file
+            data_tests: [unique, not_null]
+
+      - name: rejects
+        description: >
+          Counts of events the server turned away, by day, site, event name and reason. Nothing the rejected events
+          held is kept.

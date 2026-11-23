@@ -1,0 +1,34 @@
+models:
+  - name: dim_sources
+    description: >
+      One row per source, real or simulated, with the span its events cover. In the semantic layer it holds the
+      `source` entity that every fact mart points to, so a query can group or filter any metrics by `source`, and
+      `source__last_complete_date` says how far each source's data reaches.
+
+    # No metrics here. The semantic model gives every mart a shared `source` to join to.
+    semantic_model:
+      enabled: true
+
+    columns:
+      - name: source
+        description: "{{ doc('source') }}"
+        data_tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [real, simulated]
+        entity:
+          type: primary
+          name: source
+      - name: first_event_at
+        description: The source's oldest event_at.
+      - name: last_event_at
+        description: The source's newest event_at.
+      - name: last_complete_date
+        description: >
+          The day before the newest event's day. The newest day is usually cut off partway, so retention counts only
+          days up to this one as fully seen.
+        granularity: day
+        dimension:
+          type: time

@@ -1,0 +1,66 @@
+chartConfig:
+  config:
+    eChartsConfig:
+      series:
+        - encode:
+            xRef:
+              field: fct_unit_defeats_by_class
+            yRef:
+              field: fct_unit_defeats_defeats
+          type: bar
+      # The bars run top to bottom in the query's order, largest first.
+      xAxis:
+        - inverse: true
+    layout:
+      flipAxes: true
+      xField: fct_unit_defeats_by_class
+      yField:
+        - fct_unit_defeats_defeats
+  type: cartesian
+contentType: chart
+description: The 15 foe classes that felled the most of the player's units.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_unit_defeats_by_class
+  exploreName: fct_unit_defeats
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_unit_defeats_source
+          values:
+            - simulated
+        - id: player-fell
+          operator: equals
+          target:
+            fieldId: fct_unit_defeats_unit_side
+          values:
+            - player
+        - id: by-foe
+          operator: equals
+          target:
+            fieldId: fct_unit_defeats_by_side
+          values:
+            - foe
+      id: filters
+  limit: 15
+  metricOverrides: {}
+  metrics:
+    - fct_unit_defeats_defeats
+  sorts:
+    - descending: true
+      fieldId: fct_unit_defeats_defeats
+  tableCalculations: []
+name: Deadliest foes
+slug: combat-deadliest-foes
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_unit_defeats_by_class
+    - fct_unit_defeats_defeats
+tableName: fct_unit_defeats
+version: 1

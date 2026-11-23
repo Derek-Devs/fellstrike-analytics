@@ -1,0 +1,99 @@
+models:
+  - name: fct_player_days
+    description: >
+      One row per player and UTC day they were active. Distinct players by day is DAU, and by week WAU.
+
+    # Lightdash: every chart on this table starts filtered to one source, and the filter can't be removed, only
+    # changed. Simulated until real players arrive.
+    config:
+      meta:
+        default_filters:
+          - source: simulated
+            required: true
+
+    # Metrics count players by the day they were active. Grouped by metric_time__day, active_players is DAU, and by
+    # metric_time__week it is WAU (calendar weeks from Monday).
+    semantic_model:
+      enabled: true
+    agg_time_dimension: activity_date
+    metrics:
+      - name: active_players
+        label: Active players
+        description: >
+          Distinct players with any event. By day it is DAU, by week WAU, by month MAU. A player counts once per
+          period however many days they played in it.
+        type: simple
+        agg: count_distinct
+        expr: player_id
+      - name: new_players
+        label: New players
+        description: Players on their first day. A player counts once, in the period holding their cohort date.
+        type: simple
+        agg: sum
+        expr: is_new_player_day
+      - name: returning_players
+        label: Returning players
+        description: Active players who were not on their first day in the period.
+        type: derived
+        expr: active_players - new_players
+        input_metrics:
+          - name: active_players
+          - name: new_players
+
+    columns:
+      - name: player_day_id
+        description: A key made from the player and the day.
+        data_tests: [unique, not_null]
+        entity:
+          type: primary
+          name: player_day
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_players')
+                field: player_id
+      - name: source
+        description: "{{ doc('source') }}"
+        entity:
+          type: foreign
+          name: source
+      - name: activity_date
+        description: The UTC day.
+        granularity: day
+        dimension:
+          type: time
+      - name: events
+        description: The player's events that day.
+      - name: cohort_date
+        description: "{{ doc('cohort_date') }}"
+        granularity: day
+        dimension:
+          type: time
+      - name: days_since_cohort
+        description: "{{ doc('days_since_cohort') }}"
+        dimension:
+          type: categorical
+      - name: is_new_player_day
+        description: 1 on the player's first day, 0 on days they came back.
+        dimension:
+          type: categorical
+      - name: is_complete_day
+        description: >
+          1 when the day is fully in the data, 0 on the source's newest day, which is cut off partway. Charts by day
+          or week filter on it, so the last period doesn't look like a sudden drop.
+        dimension:
+          type: categorical
+      - name: first_mode
+        description: The mode of the player's first run.
+        dimension:
+          type: categorical
+      - name: experiment_key
+        description: "{{ doc('experiment_key') }}"
+        dimension:
+          type: categorical
+      - name: experiment_variant
+        description: "{{ doc('experiment_variant') }}"
+        dimension:
+          type: categorical

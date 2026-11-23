@@ -1,0 +1,92 @@
+contentType: dashboard
+description: Which classes win, which fall, and what kills them.
+filters:
+  dimensions: []
+  metrics: []
+  tableCalculations: []
+name: Combat balance
+slug: combat-balance
+spaceSlug: fellstrike
+tabs: []
+tiles:
+  - h: 3
+    properties:
+      content: >
+        **Simulated data,** played by the game's own bots, so these show how the rules play out, not how people
+        choose. Class rates count the player's units on the field when a battle began, under the class each started
+        in. Units summoned or freed during a battle aren't in them. A class that joins strong companies wins more, so
+        read win rates with stage and difficulty.
+      hideFrame: false
+      title: About this dashboard
+    tabSlug: null
+    type: markdown
+    w: 36
+    x: 0
+    "y": 0
+  - h: 10
+    properties:
+      chartSlug: combat-class-win-rate
+      hideTitle: false
+      title: Battle win rate by class
+    tabSlug: null
+    tileSlug: combat-class-win-rate
+    type: saved_chart
+    w: 18
+    x: 0
+    "y": 3
+  - h: 10
+    properties:
+      chartSlug: combat-class-fall-rate
+      hideTitle: false
+      title: Fall rate by class
+    tabSlug: null
+    tileSlug: combat-class-fall-rate
+    type: saved_chart
+    w: 18
+    x: 18
+    "y": 3
+  - h: 7
+    properties:
+      chartSlug: combat-deadliest-foes
+      hideTitle: false
+      title: Deadliest foes
+    tabSlug: null
+    tileSlug: combat-deadliest-foes
+    type: saved_chart
+    w: 18
+    x: 0
+    "y": 13
+  - h: 7
+    properties:
+      chartSlug: combat-falls-by-round
+      hideTitle: false
+      title: Player units fallen by round
+    tabSlug: null
+    tileSlug: combat-falls-by-round
+    type: saved_chart
+    w: 18
+    x: 18
+    "y": 13
+  - h: 8
+    properties:
+      chartSlug: combat-damage-per-attack
+      hideTitle: false
+      title: Damage per attack by side and class
+    tabSlug: null
+    tileSlug: combat-damage-per-attack
+    type: saved_chart
+    w: 18
+    x: 0
+    "y": 20
+  - h: 8
+    properties:
+      chartSlug: combat-battle-win-rate-by-stage
+      hideTitle: false
+      title: Endless battle win rate by stage
+    tabSlug: null
+    tileSlug: combat-battle-win-rate-by-stage
+    type: saved_chart
+    w: 18
+    x: 18
+    "y": 20
+version: 1

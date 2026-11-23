@@ -1,0 +1,40 @@
+chartConfig:
+  config:
+    label: Runs played to a result
+    selectedField: fct_runs_run_completion_rate
+  type: big_number
+contentType: chart
+description: Share of matured runs won, lost or drawn instead of abandoned or dropped.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions: []
+  exploreName: fct_runs
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_runs_source
+          values:
+            - simulated
+      id: filters
+  limit: 1
+  metricOverrides:
+    fct_runs_run_completion_rate:
+      formatOptions:
+        round: 1
+        type: percent
+  metrics:
+    - fct_runs_run_completion_rate
+  sorts: []
+  tableCalculations: []
+name: Run completion rate
+slug: players-run-completion-rate
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_runs_run_completion_rate
+tableName: fct_runs
+version: 1

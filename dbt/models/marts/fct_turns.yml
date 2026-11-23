@@ -1,0 +1,165 @@
+models:
+  - name: fct_turns
+    description: >
+      One row per player turn, with its length, the actions taken and whether it was empty, plus 0/1 flags for the
+      opening. The empty-turn share in the opening is sum(opening_empty) / sum(opening_measured).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [battle_id, turn_number]
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "opening_empty <= opening_measured and is_empty <= is_measured"
+
+    # Lightdash: every chart on this table starts filtered to one source, and the filter can't be removed, only
+    # changed. Simulated until real players arrive.
+    config:
+      meta:
+        default_filters:
+          - source: simulated
+            required: true
+
+    # Metrics count turns by the day they started. Grouped by run_turn they show how a run's turns change.
+    semantic_model:
+      enabled: true
+    agg_time_dimension: started_date
+    metrics:
+      - name: turns
+        label: Player turns
+        description: The player's turns.
+        type: simple
+        agg: count
+        expr: 1
+      - name: median_turn_duration_s
+        label: Median turn seconds
+        description: The median seconds on screen of the player's closed turns, hidden time left out.
+        type: simple
+        agg: median
+        expr: duration_s
+      - name: measured_turns
+        label: Measured turns
+        description: Turns in which the device counted the units with a target. The empty-turn shares divide by it.
+        type: simple
+        agg: sum
+        expr: is_measured
+      - name: empty_turns
+        label: Empty turns
+        description: Measured turns in which no unit of the player's could reach a foe or a hurt ally.
+        type: simple
+        agg: sum
+        expr: is_empty
+      - name: opening_measured_turns
+        label: Measured opening turns
+        description: Measured turns among a run's first 5 player turns.
+        type: simple
+        agg: sum
+        expr: opening_measured
+      - name: opening_empty_turns
+        label: Empty opening turns
+        description: Empty turns among a run's first 5 player turns.
+        type: simple
+        agg: sum
+        expr: opening_empty
+      - name: empty_turn_share
+        label: Empty turn share
+        description: Share of measured turns that were empty. Group by run_turn to see it across a run.
+        type: ratio
+        numerator: empty_turns
+        denominator: measured_turns
+      - name: opening_empty_turn_share
+        label: Empty turn share in the opening
+        description: Share of measured turns among a run's first 5 player turns that were empty.
+        type: ratio
+        numerator: opening_empty_turns
+        denominator: opening_measured_turns
+
+    columns:
+      - name: turn_id
+        description: A key made from the battle and the round.
+        data_tests: [unique, not_null]
+        entity:
+          type: primary
+          name: turn
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_runs')
+                field: run_id
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('fct_battles')
+                field: battle_id
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: source
+        description: "{{ doc('source') }}"
+        entity:
+          type: foreign
+          name: source
+      - name: started_at
+        description: The turn_start's event_at.
+      - name: started_date
+        description: The UTC day the turn started.
+        granularity: day
+        dimension:
+          type: time
+      - name: ended_at
+        description: The turn_end's event_at.
+      - name: mode
+        description: "{{ doc('mode') }}"
+        dimension:
+          type: categorical
+      - name: difficulty
+        description: "{{ doc('difficulty') }}"
+        dimension:
+          type: categorical
+      - name: experiment_key
+        description: "{{ doc('experiment_key') }}"
+        dimension:
+          type: categorical
+      - name: experiment_variant
+        description: "{{ doc('experiment_variant') }}"
+        dimension:
+          type: categorical
+      - name: turn_number
+        description: "{{ doc('turn_number') }}"
+        dimension:
+          type: categorical
+      - name: run_turn
+        description: "{{ doc('run_turn') }}"
+        dimension:
+          type: categorical
+      - name: units_ready
+        description: The player's units that could act.
+      - name: units_with_target
+        description: "{{ doc('units_with_target') }}"
+      - name: actions_taken
+        description: The player's commands in the turn.
+      - name: meaningful_actions
+        description: Commands that did something besides walk.
+      - name: ended_by
+        description: What ended the turn.
+        dimension:
+          type: categorical
+      - name: is_closed
+        description: 1 when the turn's turn_end arrived.
+      - name: duration_s
+        description: Seconds on screen, hidden time left out and animations included. Null for turns not closed.
+      - name: in_opening
+        description: 1 when the turn is among the run's first 5 player turns.
+        dimension:
+          type: categorical
+      - name: is_measured
+        description: 1 when the device counted the units with a target.
+      - name: is_empty
+        description: 1 when no unit had a target (units_with_target = 0).
+      - name: opening_measured
+        description: 1 for a measured turn in the opening.
+      - name: opening_empty
+        description: 1 for an empty turn in the opening.

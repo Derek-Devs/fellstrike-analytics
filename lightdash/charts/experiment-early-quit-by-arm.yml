@@ -1,0 +1,64 @@
+chartConfig:
+  config:
+    eChartsConfig:
+      series:
+        - encode:
+            xRef:
+              field: fct_experiment_exposures_variant
+            yRef:
+              field: fct_experiment_exposures_exp_early_quit_rate
+          type: bar
+    layout:
+      xField: fct_experiment_exposures_variant
+      yField:
+        - fct_experiment_exposures_exp_early_quit_rate
+  type: cartesian
+contentType: chart
+description: >
+  The A/A test's first-run early quit rate in each arm, on simulated data. Both arms play the same opening, so any
+  gap is chance. The table beside it gives the intervals and the z.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_experiment_exposures_variant
+  exploreName: fct_experiment_exposures
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_experiment_exposures_source
+          values:
+            - simulated
+        - id: experiment
+          operator: equals
+          target:
+            fieldId: fct_experiment_exposures_experiment_key
+          values:
+            - endless_opening_aa
+      id: filters
+  limit: 500
+  metricOverrides:
+    fct_experiment_exposures_exp_early_quit_rate:
+      formatOptions:
+        round: 2
+        type: percent
+  metrics:
+    - fct_experiment_exposures_exp_early_quit_rate
+    - fct_experiment_exposures_exp_matured_players
+  sorts:
+    - descending: false
+      fieldId: fct_experiment_exposures_variant
+  tableCalculations: []
+name: A/A early quit rate by arm
+slug: experiment-early-quit-by-arm
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_experiment_exposures_variant
+    - fct_experiment_exposures_exp_early_quit_rate
+    - fct_experiment_exposures_exp_matured_players
+tableName: fct_experiment_exposures
+version: 1

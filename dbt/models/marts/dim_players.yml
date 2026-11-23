@@ -1,0 +1,54 @@
+models:
+  - name: dim_players
+    description: >
+      One row per player (one browser's anonymous ID): first and last seen, cohort, how they started, how much they
+      played, and their experiment arm.
+
+    # Lightdash: every chart on this table starts filtered to one source, and the filter can't be removed, only
+    # changed. Simulated until real players arrive.
+    config:
+      meta:
+        default_filters:
+          - source: simulated
+            required: true
+
+    columns:
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+        data_tests: [unique, not_null]
+      - name: source
+        description: "{{ doc('source') }}"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [real, simulated]
+      - name: first_seen_at
+        description: The player's first event_at.
+      - name: cohort_date
+        description: "{{ doc('cohort_date') }}"
+        data_tests: [not_null]
+      - name: last_seen_at
+        description: The player's newest event_at.
+      - name: events
+        description: The player's events.
+      - name: first_build
+        description: The build of the player's first event.
+      - name: first_edition
+        description: The edition of the player's first event.
+      - name: first_site
+        description: The site of the player's first event.
+      - name: first_mode
+        description: The mode of the player's first run. Null when they never began one.
+      - name: first_difficulty
+        description: The difficulty of the player's first run.
+      - name: runs_started
+        description: Runs the player began.
+      - name: sessions
+        description: The player's sessions.
+      - name: active_days
+        description: UTC days with any event of theirs.
+      - name: experiment_key
+        description: "{{ doc('experiment_key') }}"
+      - name: experiment_variant
+        description: "{{ doc('experiment_variant') }}"

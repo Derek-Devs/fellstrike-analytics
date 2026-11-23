@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fellstrike.com/analytics/events.v1.json",
+  "title": "Fellstrike play events, version 1",
+  "description": "The contract for every play event. The game builds events to it, the server checks each event against it, and the simulator writes to it. docs/analytics-design.md section 4 explains each field.",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "count": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+    "small": { "type": "integer", "minimum": 0, "maximum": 999 },
+    "seconds": { "type": "integer", "minimum": 0, "maximum": 31536000 },
+    "id_text": { "type": "string", "pattern": "^[A-Za-z0-9_.:~-]{1,48}$" },
+    "maybe_id_text": {
+      "oneOf": [{ "$ref": "#/$defs/id_text" }, { "type": "null" }]
+    },
+    "side": { "enum": ["player", "ally", "foe", "villager"] },
+    "maybe_side": { "enum": ["player", "ally", "foe", "villager", null] },
+
+    "session_start": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["is_new_player"],
+      "properties": {
+        "is_new_player": { "type": "boolean" }
+      }
+    },
+    "session_end": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visible_s", "events_in_session"],
+      "properties": {
+        "visible_s": { "$ref": "#/$defs/seconds" },
+        "events_in_session": { "$ref": "#/$defs/count" }
+      }
+    },
+    "run_start": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "mode", "kind", "difficulty", "players", "ruleset", "seed"],
+      "properties": {
+        "run_id": { "$ref": "#/$defs/uuid" },
+        "mode": { "enum": ["endless", "endless_coop", "daily", "versus_bot", "versus_local", "versus_online", "tutorial", "tourney"] },
+        "kind": { "enum": ["world", "older", "daily", "coop", "battle"] },
+        "difficulty": { "enum": ["easy", "normal", "hard", "insane", null] },
+        "players": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "ruleset": { "enum": ["rework", "library", "classic"] },
+        "seed": { "type": "integer", "minimum": -2147483648, "maximum": 4294967295 }
+      }
+    },
+    "run_resume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "stage"],
+      "properties": {
+        "run_id": { "$ref": "#/$defs/uuid" },
+        "stage": { "$ref": "#/$defs/small" }
+      }
+    },
+    "run_end": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "result", "stage_reached", "battles_won", "run_turns", "visible_s"],
+      "properties": {
+        "run_id": { "$ref": "#/$defs/uuid" },
+        "result": { "enum": ["won", "lost", "draw", "abandoned"] },
+        "stage_reached": { "$ref": "#/$defs/small" },
+        "battles_won": { "$ref": "#/$defs/small" },
+        "run_turns": { "$ref": "#/$defs/count" },
+        "visible_s": { "$ref": "#/$defs/seconds" }
+      }
+    },
+    "battle_start": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "battle_id", "stage", "stage_kind", "objective", "turn_format", "resumed", "units"],
+      "properties": {
+        "run_id": { "$ref": "#/$defs/uuid" },
+        "battle_id": { "$ref": "#/$defs/uuid" },
+        "stage": { "$ref": "#/$defs/small" },
+        "stage_kind": { "$ref": "#/$defs/id_text" },
+        "objective": { "$ref": "#/$defs/maybe_id_text" },
+        "turn_format": { "enum": ["A", "B", "D", "E"] },
+        "resumed": { "type": "boolean" },
+        "units": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["uid", "cls", "lvl", "side"],
+            "properties": {
+              "uid": { "$ref": "#/$defs/count" },
+              "cls": { "$ref": "#/$defs/id_text" },
+              "lvl": { "$ref": "#/$defs/small" },
+              "side": { "$ref": "#/$defs/side" }
+            }
+          }
+        }
+      }
+    },
+    "battle_end": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "battle_id", "result", "reason", "rounds", "visible_s"],
+      "properties": {
+        "run_id": { "$ref": "#/$defs/uuid" },
+        "battle_id": { "$ref": "#/$defs/uuid" },
+        "result": { "enum": ["won", "lost", "draw", "left"] },
+        "reason": { "$ref": "#/$defs/maybe_id_text" },
+        "rounds": { "$ref": "#/$defs/small" },
+        "visible_s": { "$ref": "#/$defs/seconds" }
+      }
+    },
+    "turn_start": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "battle_id", "turn_number", "run_turn", "units_ready", "units_with_target"],
+      "properties": {
+        "run_id": { "$ref": "#/$defs/uuid" },
+        "battle_id": { "$ref": "#/$defs/uuid" },
+        "turn_number": { "type": "integer", "minimum": 1, "maximum": 999 },
+        "run_turn": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "units_ready": { "type": "integer", "minimum": 0, "maximum": 64 },
+        "units_with_target": {
+          "oneOf": [{ "type": "integer", "minimum": 0, "maximum": 64 }, { "type": "null" }]
+        }
+      }
+    },
+    "turn_end": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "battle_id", "turn_number", "run_turn", "duration_ms", "actions_taken", "meaningful_actions", "ended_by"],
+      "properties": {
+        "run_id": { "$ref": "#/$defs/uuid" },
+        "battle_id": { "$ref": "#/$defs/uuid" },
+        "turn_number": { "type": "integer", "minimum": 1, "maximum": 999 },
+        "run_turn": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "duration_ms": { "type": "integer", "minimum": 0, "maximum": 86400000 },
+        "actions_taken": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "meaningful_actions": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "ended_by": { "enum": ["all_acted", "end_phase", "round_end", "battle_over", "left"] }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id", "battle_id", "turn_number", "run_turn", "action_seq", "actor_side", "actor_uid", "actor_class",
+        "actor_level", "action_type", "skill_id", "weapon", "moved_tiles", "target_side", "target_class", "outcome",
+        "damage_dealt", "damage_taken", "hits", "misses", "crits", "target_defeated", "rallied", "decision_ms"
+      ],
+      "properties": {
+        "run_id": { "$ref": "#/$defs/uuid" },
+        "battle_id": { "$ref": "#/$defs/uuid" },
+        "turn_number": { "type": "integer", "minimum": 1, "maximum": 999 },
+        "run_turn": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+        "action_seq": { "$ref": "#/$defs/count" },
+        "actor_side": { "$ref": "#/$defs/side" },
+        "actor_uid": { "$ref": "#/$defs/count" },
+        "actor_class": { "$ref": "#/$defs/id_text" },
+        "actor_level": { "$ref": "#/$defs/small" },
+        "action_type": { "enum": ["attack", "heal", "staff", "skill", "wait", "swap", "trade", "shove", "give_seal", "leave", "equip", "choose", "other"] },
+        "skill_id": { "$ref": "#/$defs/maybe_id_text" },
+        "weapon": { "$ref": "#/$defs/maybe_id_text" },
+        "moved_tiles": { "type": "integer", "minimum": 0, "maximum": 99 },
+        "target_side": { "$ref": "#/$defs/maybe_side" },
+        "target_class": { "$ref": "#/$defs/maybe_id_text" },
+        "outcome": { "enum": ["kill", "crit", "hit", "miss", "none"] },
+        "damage_dealt": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "damage_taken": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "hits": { "$ref": "#/$defs/small" },
+        "misses": { "$ref": "#/$defs/small" },
+        "crits": { "$ref": "#/$defs/small" },
+        "target_defeated": { "type": "boolean" },
+        "rallied": { "type": "integer", "minimum": 0, "maximum": 64 },
+        "decision_ms": {
+          "oneOf": [{ "type": "integer", "minimum": 0, "maximum": 86400000 }, { "type": "null" }]
+        }
+      }
+    },
+    "unit_defeated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "battle_id", "turn_number", "unit_side", "unit_uid", "unit_class", "unit_level", "was_founder", "by_side", "by_class", "cause"],
+      "properties": {
+        "run_id": { "$ref": "#/$defs/uuid" },
+        "battle_id": { "$ref": "#/$defs/uuid" },
+        "turn_number": { "type": "integer", "minimum": 1, "maximum": 999 },
+        "unit_side": { "$ref": "#/$defs/side" },
+        "unit_uid": { "$ref": "#/$defs/count" },
+        "unit_class": { "$ref": "#/$defs/id_text" },
+        "unit_level": { "$ref": "#/$defs/small" },
+        "was_founder": { "type": "boolean" },
+        "by_side": { "$ref": "#/$defs/maybe_side" },
+        "by_class": { "$ref": "#/$defs/maybe_id_text" },
+        "cause": { "enum": ["strike", "chain", "burn", "meteor", "other"] }
+      }
+    },
+    "experiment_exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["experiment_key", "variant", "bucket", "run_id"],
+      "properties": {
+        "experiment_key": { "type": "string", "pattern": "^[a-z0-9_]{1,40}$" },
+        "variant": { "enum": ["control", "treatment"] },
+        "bucket": { "type": "integer", "minimum": 0, "maximum": 9999 },
+        "run_id": { "$ref": "#/$defs/uuid" }
+      }
+    },
+
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "event_name", "schema_version", "player_id", "session_id", "event_seq", "client_ts", "build", "edition", "props"],
+      "properties": {
+        "event_id": { "$ref": "#/$defs/uuid" },
+        "event_name": {
+          "enum": ["session_start", "session_end", "run_start", "run_resume", "run_end", "battle_start", "battle_end", "turn_start", "turn_end", "action", "unit_defeated", "experiment_exposure"]
+        },
+        "schema_version": { "const": 1 },
+        "player_id": { "$ref": "#/$defs/uuid" },
+        "session_id": { "$ref": "#/$defs/uuid" },
+        "event_seq": { "$ref": "#/$defs/count" },
+        "client_ts": { "$ref": "#/$defs/timestamp" },
+        "build": { "type": "string", "pattern": "^[A-Za-z0-9_.-]{1,60}$" },
+        "edition": { "enum": ["free", "full"] },
+        "props": { "type": "object" }
+      },
+      "allOf": [
+        { "if": { "properties": { "event_name": { "const": "session_start" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/session_start" } } } },
+        { "if": { "properties": { "event_name": { "const": "session_end" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/session_end" } } } },
+        { "if": { "properties": { "event_name": { "const": "run_start" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/run_start" } } } },
+        { "if": { "properties": { "event_name": { "const": "run_resume" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/run_resume" } } } },
+        { "if": { "properties": { "event_name": { "const": "run_end" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/run_end" } } } },
+        { "if": { "properties": { "event_name": { "const": "battle_start" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/battle_start" } } } },
+        { "if": { "properties": { "event_name": { "const": "battle_end" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/battle_end" } } } },
+        { "if": { "properties": { "event_name": { "const": "turn_start" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/turn_start" } } } },
+        { "if": { "properties": { "event_name": { "const": "turn_end" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/turn_end" } } } },
+        { "if": { "properties": { "event_name": { "const": "action" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/action" } } } },
+        { "if": { "properties": { "event_name": { "const": "unit_defeated" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/unit_defeated" } } } },
+        { "if": { "properties": { "event_name": { "const": "experiment_exposure" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/experiment_exposure" } } } }
+      ]
+    },
+
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "sent_at", "events"],
+      "properties": {
+        "v": { "const": 1 },
+        "sent_at": { "$ref": "#/$defs/timestamp" },
+        "events": { "type": "array", "minItems": 1, "maxItems": 100 }
+      }
+    }
+  },
+  "$ref": "#/$defs/event"
+}

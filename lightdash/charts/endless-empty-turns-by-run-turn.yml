@@ -1,0 +1,68 @@
+chartConfig:
+  config:
+    eChartsConfig:
+      series:
+        - encode:
+            xRef:
+              field: fct_turns_run_turn
+            yRef:
+              field: fct_turns_empty_turn_share
+          type: bar
+    layout:
+      xField: fct_turns_run_turn
+      yField:
+        - fct_turns_empty_turn_share
+  type: cartesian
+contentType: chart
+description: >
+  For each of a solo Endless run's first 10 player turns, the share in which no unit could reach a foe or a hurt
+  ally. The opening is turns 1 to 5.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_turns_run_turn
+  exploreName: fct_turns
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_turns_source
+          values:
+            - simulated
+        - id: mode
+          operator: equals
+          target:
+            fieldId: fct_turns_mode
+          values:
+            - endless
+        - id: first-ten
+          operator: lessThanOrEqual
+          target:
+            fieldId: fct_turns_run_turn
+          values:
+            - 10
+      id: filters
+  limit: 500
+  metricOverrides:
+    fct_turns_empty_turn_share:
+      formatOptions:
+        round: 1
+        type: percent
+  metrics:
+    - fct_turns_empty_turn_share
+  sorts:
+    - descending: false
+      fieldId: fct_turns_run_turn
+  tableCalculations: []
+name: Empty turns across the first 10 run turns
+slug: endless-empty-turns-by-run-turn
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_turns_run_turn
+    - fct_turns_empty_turn_share
+tableName: fct_turns
+version: 1

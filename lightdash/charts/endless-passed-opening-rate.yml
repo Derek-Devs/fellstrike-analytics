@@ -1,0 +1,40 @@
+chartConfig:
+  config:
+    label: Reached turn 6
+    selectedField: fct_runs_endless_passed_opening_rate
+  type: big_number
+contentType: chart
+description: Share of matured solo Endless runs that reached player turn 6, however they ended.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions: []
+  exploreName: fct_runs
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_runs_source
+          values:
+            - simulated
+      id: filters
+  limit: 1
+  metricOverrides:
+    fct_runs_endless_passed_opening_rate:
+      formatOptions:
+        round: 1
+        type: percent
+  metrics:
+    - fct_runs_endless_passed_opening_rate
+  sorts: []
+  tableCalculations: []
+name: Endless runs past the opening
+slug: endless-passed-opening-rate
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_runs_endless_passed_opening_rate
+tableName: fct_runs
+version: 1

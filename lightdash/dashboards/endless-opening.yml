@@ -1,0 +1,103 @@
+contentType: dashboard
+description: How solo Endless runs start, the part of the game the experiment changes.
+filters:
+  dimensions: []
+  metrics: []
+  tableCalculations: []
+name: Endless opening
+slug: endless-opening
+spaceSlug: fellstrike
+tabs: []
+tiles:
+  - h: 3
+    properties:
+      content: >
+        **Simulated data,** solo Endless runs only. The opening is a run's first 5 player turns. An **early quit** is
+        a run abandoned or dropped in the opening. A run lost in the opening is not a quit, so the two rates at the top
+        don't add up to 100%. An **empty turn** is one where none of the player's units could reach a foe or a hurt
+        ally.
+      hideFrame: false
+      title: About this dashboard
+    tabSlug: null
+    type: markdown
+    w: 36
+    x: 0
+    "y": 0
+  - h: 4
+    properties:
+      chartSlug: endless-early-quit-rate
+      hideTitle: false
+      title: Early quit rate
+    tabSlug: null
+    tileSlug: endless-early-quit-rate
+    type: saved_chart
+    w: 12
+    x: 0
+    "y": 3
+  - h: 4
+    properties:
+      chartSlug: endless-passed-opening-rate
+      hideTitle: false
+      title: Runs past the opening
+    tabSlug: null
+    tileSlug: endless-passed-opening-rate
+    type: saved_chart
+    w: 12
+    x: 12
+    "y": 3
+  - h: 4
+    properties:
+      chartSlug: endless-opening-empty-turn-share
+      hideTitle: false
+      title: Empty turns in the opening
+    tabSlug: null
+    tileSlug: endless-opening-empty-turn-share
+    type: saved_chart
+    w: 12
+    x: 24
+    "y": 3
+  - h: 7
+    properties:
+      chartSlug: endless-empty-turns-by-run-turn
+      hideTitle: false
+      title: Empty turns across the first 10 run turns
+    tabSlug: null
+    tileSlug: endless-empty-turns-by-run-turn
+    type: saved_chart
+    w: 18
+    x: 0
+    "y": 7
+  - h: 7
+    properties:
+      chartSlug: endless-turn-seconds-by-run-turn
+      hideTitle: false
+      title: Turn length across the first 10 run turns
+    tabSlug: null
+    tileSlug: endless-turn-seconds-by-run-turn
+    type: saved_chart
+    w: 18
+    x: 18
+    "y": 7
+  - h: 7
+    properties:
+      chartSlug: endless-decision-time-by-run-turn
+      hideTitle: false
+      title: Decision time across the first 10 run turns
+    tabSlug: null
+    tileSlug: endless-decision-time-by-run-turn
+    type: saved_chart
+    w: 18
+    x: 0
+    "y": 14
+  - h: 7
+    properties:
+      chartSlug: endless-where-runs-end
+      hideTitle: false
+      title: Where Endless runs end
+    tabSlug: null
+    tileSlug: endless-where-runs-end
+    type: saved_chart
+    w: 18
+    x: 18
+    "y": 14
+version: 1

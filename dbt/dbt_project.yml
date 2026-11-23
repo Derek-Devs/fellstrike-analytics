@@ -1,0 +1,48 @@
+# The Fellstrike analytics dbt project (docs/analytics-design.md, section 7). Run it from this folder, with the
+# warehouse's settings from ../.env:
+#   ..\.venv\Scripts\dotenv -f ..\.env run -- dbt build
+name: fellstrike
+version: "1.0.0"
+profile: fellstrike
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+analysis-paths: ["analyses"]
+clean-targets: ["target", "dbt_packages", "logs"]
+
+flags:
+  # dbt sends anonymous usage events to dbt Labs unless told not to. Nothing here needs to leave this PC.
+  send_anonymous_usage_stats: false
+  # dbt 1.12's partial parsing adds a model's metrics a second time after its YAML file changes, and the parse then
+  # fails on "two metrics with the name ...". A full parse of this project takes a few seconds, so it is always on.
+  partial_parse: false
+
+vars:
+  # A gap longer than this between a player's events starts a new session.
+  session_gap_minutes: 30
+  # A run with no run_end and no events for this many days, counted back from the newest data, is dropped.
+  run_quiet_days: 7
+  # A run's opening: its first this many player turns, whatever battle they fall in.
+  opening_turns: 5
+
+models:
+  fellstrike:
+    # One row per event, renamed and typed, nothing joined.
+    staging:
+      +schema: staging
+      +materialized: view
+    # Events put together into sessions, runs, battles and turns.
+    intermediate:
+      +schema: intermediate
+      +materialized: view
+    # Wide tables for MetricFlow, Lightdash and the agent. Every build rebuilds them in full, which also takes in
+    # events that arrived late from a device's outbox.
+    marts:
+      +schema: marts
+      +materialized: table
+
+# Small tables kept in the repository: each experiment's plan (seeds/experiment_plans.csv).
+seeds:
+  fellstrike:
+    +schema: marts

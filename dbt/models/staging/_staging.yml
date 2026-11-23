@@ -1,0 +1,641 @@
+# Staging: one row per event. The tests here check the event contract (analytics/schema/events.v1.json) from the
+# warehouse's side: keys that must be unique, and the lists of values each field may hold.
+
+models:
+  - name: stg_events
+    description: >
+      Every play event, real and simulated, one row each. The envelope is typed, the device's clock is corrected
+      (event_at), and run_id and battle_id come out of props because so many models join on them.
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique, not_null]
+      - name: source
+        description: "{{ doc('source') }}"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [real, simulated]
+      - name: event_name
+        description: The kind of event. Each has its own staging model below.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [session_start, session_end, run_start, run_resume, run_end, battle_start, battle_end,
+                         turn_start, turn_end, action, unit_defeated, experiment_exposure]
+      - name: schema_version
+        description: The event's version of the contract. Only version 1 exists.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1]
+                quote: false
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+        data_tests: [not_null]
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_seq
+        description: Counts up within a device session, to order events that share a millisecond.
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+        data_tests: [not_null]
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: client_ts
+        description: When the event happened by the device's clock, which may be wrong.
+      - name: sent_at
+        description: The device's clock when the event's batch left.
+      - name: received_at
+        description: The server's clock when the event's batch arrived.
+      - name: site
+        description: "{{ doc('site') }}"
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [public, play, local, sim]
+      - name: edition
+        description: "{{ doc('edition') }}"
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [free, full]
+      - name: build
+        description: "{{ doc('build') }}"
+      - name: run_id
+        description: "{{ doc('run_id') }} Null for session events."
+      - name: battle_id
+        description: "{{ doc('battle_id') }} Null outside battles."
+      - name: props
+        description: The event's own fields as JSON. Each event's staging model unpacks them.
+      - name: loaded_at
+        description: When load_events.py put the event in the warehouse.
+
+  - name: stg_events__session_start
+    description: One row per session_start, sent when the device opens a new session.
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: site
+        description: "{{ doc('site') }}"
+      - name: edition
+        description: "{{ doc('edition') }}"
+      - name: build
+        description: "{{ doc('build') }}"
+      - name: is_new_player
+        description: True when this browser had no player ID before this session.
+
+  - name: stg_events__session_end
+    description: >
+      One row per session_end, sent when the tab is hidden or closed. Best effort: a closing tab may not get it out,
+      so nothing relies on it.
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: visible_s
+        description: Seconds the session's tab was on screen.
+      - name: events_in_session
+        description: Events the device logged in the session.
+
+  - name: stg_events__run_start
+    description: One row per run_start, sent when a new run or match begins on the device.
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: site
+        description: "{{ doc('site') }}"
+      - name: edition
+        description: "{{ doc('edition') }}"
+      - name: build
+        description: "{{ doc('build') }}"
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+        data_tests: [unique, not_null]
+      - name: mode
+        description: "{{ doc('mode') }}"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [endless, endless_coop, daily, versus_bot, versus_local, versus_online, tutorial, tourney]
+      - name: kind
+        description: The game's own kind of run, as its run reports name it.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [world, older, daily, coop, battle]
+      - name: difficulty
+        description: "{{ doc('difficulty') }}"
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [easy, normal, hard, insane]
+      - name: players
+        description: People playing the run on this device's side, 1 to 8.
+      - name: ruleset
+        description: "`rework` (the live unit rework), `library` (the class library) or `classic`."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [rework, library, classic]
+      - name: seed
+        description: The run's random seed, so a run can be replayed.
+
+  - name: stg_events__run_resume
+    description: One row per run_resume, sent when a saved run is carried on in a later visit.
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_events__run_start')
+                field: run_id
+      - name: stage
+        description: The stage the run was at when taken up again.
+
+  - name: stg_events__run_end
+    description: >
+      One row per run_end: won, lost, drawn or abandoned. A run that simply stops has none, and int_runs counts it
+      as dropped once it has been quiet long enough.
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_events__run_start')
+                field: run_id
+      - name: result
+        description: "`won`, `lost`, `draw` or `abandoned`."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [won, lost, draw, abandoned]
+      - name: stage_reached
+        description: The stage the run ended on.
+      - name: battles_won
+        description: Battles the run won, by the tracker's count. A warn test checks it against the battles.
+      - name: run_turns
+        description: The player's turns in the run, by the tracker's count. A warn test checks it against the turns.
+      - name: visible_s
+        description: Seconds the run was on screen, battles and camps together.
+
+  - name: stg_events__battle_start
+    description: >
+      One row per battle_start, sent when a battle's first turn begins. A battle kept across a reload carries on under
+      the same battle_id with no second battle_start.
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_events__run_start')
+                field: run_id
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests: [unique, not_null]
+      - name: stage
+        description: The run's stage, from 1. A battle of its own (Versus) is stage 1.
+      - name: stage_kind
+        description: The game's kind of stage, such as `strike` (the opener), `fight`, `skirmish`, `keep`, `elite` or `final`.
+      - name: objective
+        description: How the battle is won, such as `rout`, `banners`, `siege` or `boss`. Null when the stage sets none.
+      - name: turn_format
+        description: The turn order the battle uses. `B` (phases) is the live Endless format.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [A, B, D, E]
+      - name: is_resumed
+        description: True when tracking first saw the battle partway through (turned on mid-battle).
+      - name: unit_count
+        description: Units on the field as the battle began, things to protect or burn left out.
+
+  - name: stg_events__battle_units
+    description: One row per unit on the field when a battle started, unnested from battle_start's units list.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [battle_id, unit_index]
+    columns:
+      - name: event_id
+        description: The battle_start event the unit came from.
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests: [not_null]
+      - name: unit_index
+        description: >
+          The unit's place in the list, from 1. With battle_id it names the row, since unit_uid can repeat in a
+          battle: the company's units keep their own numbers, and foes have the battle's.
+      - name: unit_uid
+        description: The unit's number. A company unit keeps it across the run.
+      - name: unit_class
+        description: The unit's class, such as `peasant` or `wyvernRider`.
+      - name: unit_level
+        description: The unit's level as the battle began.
+      - name: unit_side
+        description: "`player`, `ally`, `foe` or `villager`, as the player sees it."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [player, ally, foe, villager]
+
+  - name: stg_events__battle_end
+    description: One row per battle_end, sent when a battle is won, lost, drawn or left unfinished.
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_events__battle_start')
+                field: battle_id
+      - name: result
+        description: "`won`, `lost` or `draw` from the player's side, or `left` when quit partway."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [won, lost, draw, left]
+      - name: reason
+        description: How it was decided, such as `commander` (a commander fell), `rout`, `banners` or `rounds`.
+      - name: rounds
+        description: Rounds the battle lasted.
+      - name: visible_s
+        description: Seconds the battle was on screen.
+
+  - name: stg_events__turn_start
+    description: One row per turn_start, sent when the player's side gets the move in a round.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [battle_id, turn_number]
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_events__battle_start')
+                field: battle_id
+      - name: turn_number
+        description: "{{ doc('turn_number') }}"
+      - name: run_turn
+        description: "{{ doc('run_turn') }}"
+      - name: units_ready
+        description: The player's units that can act this turn.
+      - name: units_with_target
+        description: "{{ doc('units_with_target') }}"
+
+  - name: stg_events__turn_end
+    description: One row per turn_end, sent when the player's side has finished its moves in a round.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [battle_id, turn_number]
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests: [not_null]
+      - name: turn_number
+        description: "{{ doc('turn_number') }}"
+      - name: run_turn
+        description: "{{ doc('run_turn') }}"
+      - name: duration_ms
+        description: Time on screen from turn_start, hidden time left out and animations included.
+      - name: actions_taken
+        description: The player's commands in the turn.
+      - name: meaningful_actions
+        description: >
+          Commands that did something besides walk: anything but wait, equip and choose, plus a wait that rallied a
+          villager.
+      - name: ended_by
+        description: >
+          What ended the turn: `all_acted` (every unit moved), `end_phase` (the player pressed End Phase), `round_end`,
+          `battle_over` or `left`.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [all_acted, end_phase, round_end, battle_over, left]
+
+  - name: stg_events__action
+    description: One row per action, a command by any side's unit, once the rules have applied it.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [battle_id, action_seq]
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_events__battle_start')
+                field: battle_id
+      - name: turn_number
+        description: "{{ doc('turn_number') }}"
+      - name: run_turn
+        description: "{{ doc('run_turn') }} 0 for foes' moves before the player's first turn."
+      - name: action_seq
+        description: The action's place in the battle, from 1.
+      - name: actor_side
+        description: "`player`, `ally` (another person or a bot ally in co-op), `foe` or `villager`."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [player, ally, foe, villager]
+      - name: actor_uid
+        description: The acting unit's number.
+      - name: actor_class
+        description: The acting unit's class.
+      - name: actor_level
+        description: The acting unit's level.
+      - name: action_type
+        description: What the command was.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [attack, heal, staff, skill, wait, swap, trade, shove, give_seal, leave, equip, choose, other]
+      - name: skill_id
+        description: The skill used, when there is one.
+      - name: weapon
+        description: The plain weapon used, without its perks or earned name.
+      - name: moved_tiles
+        description: Tiles walked before acting.
+      - name: target_side
+        description: The target's side, when there is a target.
+      - name: target_class
+        description: The target's class, when there is a target.
+      - name: outcome
+        description: The strongest that happened, `kill`, `crit`, `hit`, `miss` or `none`.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [kill, crit, hit, miss, none]
+      - name: damage_dealt
+        description: Damage the actor's side did during the move (an ally joining in counts).
+      - name: damage_taken
+        description: Damage the other sides did back during the move, counters mostly.
+      - name: hits
+        description: The actor's own blows that landed, follow-ups included.
+      - name: misses
+        description: The actor's own blows that missed.
+      - name: crits
+        description: The actor's own blows that crit.
+      - name: target_defeated
+        description: True when the target fell.
+      - name: rallied
+        description: Villagers the command rallied, in the opener.
+      - name: decision_ms
+        description: >
+          For the player's own commands, thinking time: from the unit being ready to the command, animations left
+          out. Null for other sides.
+
+  - name: stg_events__unit_defeated
+    description: One row per unit that fell. A skeleton that reassembles can fall more than once in a battle.
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_events__battle_start')
+                field: battle_id
+      - name: turn_number
+        description: "{{ doc('turn_number') }}"
+      - name: unit_side
+        description: The fallen unit's side.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [player, ally, foe, villager]
+      - name: unit_uid
+        description: The fallen unit's number.
+      - name: unit_class
+        description: The fallen unit's class.
+      - name: unit_level
+        description: The fallen unit's level.
+      - name: was_founder
+        description: True when the unit was the run's founder, whose fall ends a solo run.
+      - name: by_side
+        description: The side that felled it, when one did.
+      - name: by_class
+        description: The class that felled it, when one did.
+      - name: cause
+        description: "`strike` (a blow), `chain`, `burn`, `meteor` or `other`."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [strike, chain, burn, meteor, other]
+
+  - name: stg_events__experiment_exposure
+    description: >
+      One row per experiment_exposure, sent when the first battle of a new solo Endless run starts, the moment the
+      variant first changes what a player sees. Both arms log it at the same moment, once per run.
+    columns:
+      - name: event_id
+        description: "{{ doc('event_id') }}"
+        data_tests: [unique]
+      - name: source
+        description: "{{ doc('source') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: device_session_id
+        description: "{{ doc('device_session_id') }}"
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_events__run_start')
+                field: run_id
+      - name: experiment_key
+        description: "{{ doc('experiment_key') }}"
+        data_tests: [not_null]
+      - name: variant
+        description: "{{ doc('experiment_variant') }}"
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [control, treatment]
+      - name: bucket
+        description: >
+          The player's bucket, 0 to 9999: the first 4 bytes of SHA-256 of "experiment_key:player_id" as an unsigned
+          number, mod 10,000. Below 5,000 is control. A singular test works it out again in SQL.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 9999

@@ -1,0 +1,118 @@
+models:
+  - name: fct_unit_defeats
+    description: One row per unit that fell, with who felled it and how.
+
+    # Lightdash: every chart on this table starts filtered to one source, and the filter can't be removed, only
+    # changed. Simulated until real players arrive.
+    config:
+      meta:
+        default_filters:
+          - source: simulated
+            required: true
+
+    # Metrics count falls by the day they happened. Group by by_class for the deadliest foes, or by turn_number.
+    semantic_model:
+      enabled: true
+    agg_time_dimension: event_date
+    metrics:
+      - name: defeats
+        label: Defeats
+        description: Units that fell, on any side. A skeleton that reassembles and falls again counts twice.
+        type: simple
+        agg: count
+        expr: 1
+      - name: founder_defeats
+        label: Founder defeats
+        description: Falls of a run's founder.
+        type: simple
+        agg: sum
+        expr: was_founder
+
+    columns:
+      - name: defeat_id
+        description: The unit_defeated event's ID.
+        data_tests: [unique, not_null]
+        entity:
+          type: primary
+          name: defeat
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('fct_battles')
+                field: battle_id
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: source
+        description: "{{ doc('source') }}"
+        entity:
+          type: foreign
+          name: source
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+        granularity: day
+        dimension:
+          type: time
+      - name: mode
+        description: "{{ doc('mode') }}"
+        dimension:
+          type: categorical
+      - name: difficulty
+        description: "{{ doc('difficulty') }}"
+        dimension:
+          type: categorical
+      - name: experiment_key
+        description: "{{ doc('experiment_key') }}"
+        dimension:
+          type: categorical
+      - name: experiment_variant
+        description: "{{ doc('experiment_variant') }}"
+        dimension:
+          type: categorical
+      - name: stage
+        description: The run's stage.
+        dimension:
+          type: categorical
+      - name: stage_kind
+        description: The game's kind of stage.
+        dimension:
+          type: categorical
+      - name: turn_number
+        description: "{{ doc('turn_number') }}"
+        dimension:
+          type: categorical
+      - name: unit_side
+        description: The fallen unit's side.
+        dimension:
+          type: categorical
+      - name: unit_uid
+        description: The fallen unit's number.
+      - name: unit_class
+        description: The fallen unit's class.
+        dimension:
+          type: categorical
+      - name: unit_level
+        description: The fallen unit's level.
+        dimension:
+          type: categorical
+      - name: was_founder
+        description: 1 when the unit was the run's founder.
+        dimension:
+          type: categorical
+      - name: by_side
+        description: The side that felled it.
+        dimension:
+          type: categorical
+      - name: by_class
+        description: The class that felled it.
+        dimension:
+          type: categorical
+      - name: cause
+        description: How it fell.
+        dimension:
+          type: categorical

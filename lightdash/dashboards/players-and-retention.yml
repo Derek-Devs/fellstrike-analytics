@@ -1,0 +1,113 @@
+contentType: dashboard
+description: Who plays, how often they come back, and how much they play.
+filters:
+  dimensions: []
+  metrics: []
+  tableCalculations: []
+name: Players and retention
+slug: players-and-retention
+spaceSlug: fellstrike
+tabs: []
+tiles:
+  - h: 2
+    properties:
+      content: >
+        **Simulated data:** 1,200 bot-played players from 2026-09-07 to 2026-11-15. Every chart is filtered to one
+        source. Change a chart's source filter to `real` to see live players. Weeks start on Monday, and retention
+        leaves out players whose day 1 or day 7 isn't fully in the data yet.
+      hideFrame: false
+      title: About this dashboard
+    tabSlug: null
+    type: markdown
+    w: 36
+    x: 0
+    "y": 0
+  - h: 4
+    properties:
+      chartSlug: players-d1-retention
+      hideTitle: false
+      title: D1 retention
+    tabSlug: null
+    tileSlug: players-d1-retention
+    type: saved_chart
+    w: 9
+    x: 0
+    "y": 2
+  - h: 4
+    properties:
+      chartSlug: players-d7-retention
+      hideTitle: false
+      title: D7 retention
+    tabSlug: null
+    tileSlug: players-d7-retention
+    type: saved_chart
+    w: 9
+    x: 9
+    "y": 2
+  - h: 4
+    properties:
+      chartSlug: players-runs-per-player
+      hideTitle: false
+      title: Runs per player
+    tabSlug: null
+    tileSlug: players-runs-per-player
+    type: saved_chart
+    w: 9
+    x: 18
+    "y": 2
+  - h: 4
+    properties:
+      chartSlug: players-run-completion-rate
+      hideTitle: false
+      title: Run completion rate
+    tabSlug: null
+    tileSlug: players-run-completion-rate
+    type: saved_chart
+    w: 9
+    x: 27
+    "y": 2
+  - h: 7
+    properties:
+      chartSlug: players-weekly-active
+      hideTitle: false
+      title: Weekly active players
+    tabSlug: null
+    tileSlug: players-weekly-active
+    type: saved_chart
+    w: 18
+    x: 0
+    "y": 6
+  - h: 7
+    properties:
+      chartSlug: players-new-and-returning
+      hideTitle: false
+      title: New and returning players by week
+    tabSlug: null
+    tileSlug: players-new-and-returning
+    type: saved_chart
+    w: 18
+    x: 18
+    "y": 6
+  - h: 7
+    properties:
+      chartSlug: players-retention-by-cohort
+      hideTitle: false
+      title: D1 and D7 retention by cohort week
+    tabSlug: null
+    tileSlug: players-retention-by-cohort
+    type: saved_chart
+    w: 18
+    x: 0
+    "y": 13
+  - h: 7
+    properties:
+      chartSlug: players-sessions-weekly
+      hideTitle: false
+      title: Sessions and session length by week
+    tabSlug: null
+    tileSlug: players-sessions-weekly
+    type: saved_chart
+    w: 18
+    x: 18
+    "y": 13
+version: 1

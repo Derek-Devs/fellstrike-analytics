@@ -1,0 +1,153 @@
+# The agent's eval (docs/analytics-design.md, section 10.3): 20 questions, 16 with an answer in the semantic layer and
+# 4 without one. For each answerable question:
+#   metrics: the metrics that answer it. The agent must query one of them.
+#   source: the source the answer comes from.
+#   sql: plain SQL on the marts that gives the expected value, written apart from the metric definitions. The scorer
+#        runs it, so the expected values follow the data and are never copied by hand.
+# An unanswerable question passes when the agent gives no number.
+
+questions:
+  - id: q01
+    question: How many players were active in the week starting 12 October 2026, in the simulated data?
+    metrics: [active_players]
+    source: simulated
+    sql: |
+      select count(distinct player_id) from marts.fct_player_days
+      where source = 'simulated' and date_trunc('week', activity_date)::date = '2026-10-12'
+
+  - id: q02
+    question: What is D1 retention across all cohorts in the simulated data?
+    metrics: [d1_retention]
+    source: simulated
+    sql: |
+      select sum(retained_d1)::numeric / sum(d1_eligible) from marts.fct_player_retention where source = 'simulated'
+
+  - id: q03
+    question: What was D7 retention for simulated players whose first day fell in the week starting 28 September 2026?
+    metrics: [d7_retention]
+    source: simulated
+    sql: |
+      select sum(retained_d7)::numeric / sum(d7_eligible) from marts.fct_player_retention
+      where source = 'simulated' and date_trunc('week', cohort_date)::date = '2026-09-28'
+
+  - id: q04
+    question: How many runs did simulated players start in October 2026?
+    metrics: [runs_started]
+    source: simulated
+    sql: |
+      select count(*) from marts.fct_runs
+      where source = 'simulated' and started_date >= '2026-10-01' and started_date < '2026-11-01'
+
+  - id: q05
+    question: In the simulated data, what share of solo Endless runs are quit within their first five turns?
+    metrics: [endless_early_quit_rate]
+    source: simulated
+    sql: |
+      select sum(endless_early_quit)::numeric / sum(endless_matured) from marts.fct_runs where source = 'simulated'
+
+  - id: q06
+    question: >
+      Among classes with at least 500 decided battles in the simulated data, which has the highest battle win rate,
+      and what is it?
+    metrics: [class_battle_win_rate]
+    source: simulated
+    sql: |
+      select sum(battle_won)::numeric / sum(battle_decided) as win_rate from marts.fct_battle_units
+      where source = 'simulated' group by unit_class having sum(battle_decided) >= 500
+      order by win_rate desc limit 1
+
+  - id: q07
+    question: What is the median length, in seconds, of the first player turn of solo Endless runs in the simulated data?
+    metrics: [median_turn_duration_s]
+    source: simulated
+    sql: |
+      select percentile_cont(0.5) within group (order by duration_s) from marts.fct_turns
+      where source = 'simulated' and mode = 'endless' and run_turn = 1
+
+  - id: q08
+    question: How many of the player's units were felled by wolf riders in the simulated data?
+    metrics: [defeats]
+    source: simulated
+    sql: |
+      select count(*) from marts.fct_unit_defeats
+      where source = 'simulated' and unit_side = 'player' and by_class = 'wolfRider'
+
+  - id: q09
+    question: How long is the average simulated session, in minutes?
+    metrics: [avg_session_minutes]
+    source: simulated
+    sql: |
+      select avg(session_minutes) from marts.fct_sessions where source = 'simulated'
+
+  - id: q10
+    question: How many simulated players were exposed to the treatment arm of the A/A test?
+    metrics: [exposed_players]
+    source: simulated
+    sql: |
+      select count(distinct player_id) from marts.fct_experiment_exposures
+      where source = 'simulated' and experiment_key = 'endless_opening_aa' and variant = 'treatment'
+
+  - id: q11
+    question: In the A/A test on simulated data, what is the first-run early quit rate in the control arm?
+    metrics: [exp_early_quit_rate]
+    source: simulated
+    sql: |
+      select sum(first_run_early_quit)::numeric / sum(first_run_matured) from marts.fct_experiment_exposures
+      where source = 'simulated' and experiment_key = 'endless_opening_aa' and variant = 'control'
+
+  - id: q12
+    question: What is the run win rate on Hard difficulty in the simulated data?
+    metrics: [run_win_rate]
+    source: simulated
+    sql: |
+      select sum(is_won)::numeric / sum(is_matured) from marts.fct_runs
+      where source = 'simulated' and difficulty = 'hard'
+
+  - id: q13
+    question: How many real players have played so far?
+    # new_players was added after the second run (2026-11-23): summed over all time it counts each player once, on
+    # their first day, so it answers this too. The agent used it and said why. The grader had wrongly failed it.
+    metrics: [active_players, cohort_players, run_players, new_players]
+    source: real
+    sql: |
+      select count(distinct player_id) from marts.fct_player_days where source = 'real'
+
+  - id: q14
+    question: In solo Endless runs in the simulated data, what share of the opening's measured turns were empty?
+    metrics: [opening_empty_turn_share]
+    source: simulated
+    sql: |
+      select sum(opening_empty)::numeric / sum(opening_measured) from marts.fct_turns
+      where source = 'simulated' and mode = 'endless'
+
+  - id: q15
+    question: How much damage does the player's mage deal per attack, in the simulated data?
+    metrics: [damage_per_attack]
+    source: simulated
+    sql: |
+      select sum(attack_damage_dealt)::numeric / sum(is_attack) from marts.fct_actions
+      where source = 'simulated' and actor_side = 'player' and actor_class = 'mage'
+
+  - id: q16
+    question: On average, how many runs does a simulated player start?
+    metrics: [runs_per_player]
+    source: simulated
+    sql: |
+      select count(*)::numeric / count(distinct player_id) from marts.fct_runs where source = 'simulated'
+
+  # No metric answers these. The right answer says so and gives no number.
+  - id: q17
+    question: What share of our players are from Texas?
+    answerable: false
+
+  - id: q18
+    question: How much revenue did Fellstrike make in October 2026?
+    answerable: false
+
+  - id: q19
+    question: What is the average age of our simulated players?
+    answerable: false
+
+  - id: q20
+    question: Which marketing campaign brought in the most new players?
+    answerable: false

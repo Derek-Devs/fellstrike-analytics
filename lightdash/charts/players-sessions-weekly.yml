@@ -1,0 +1,74 @@
+chartConfig:
+  config:
+    eChartsConfig:
+      series:
+        - encode:
+            xRef:
+              field: fct_sessions_started_date_week
+            yRef:
+              field: fct_sessions_sessions
+          type: bar
+        - encode:
+            xRef:
+              field: fct_sessions_started_date_week
+            yRef:
+              field: fct_sessions_avg_session_minutes
+          type: line
+          yAxisIndex: 1
+      # Both axes from zero, so a minute's wobble in session length doesn't look like a swing.
+      yAxis:
+        - min: "0"
+        - min: "0"
+    layout:
+      xField: fct_sessions_started_date_week
+      yField:
+        - fct_sessions_sessions
+        - fct_sessions_avg_session_minutes
+  type: cartesian
+contentType: chart
+description: Sessions begun each week (bars), and their average length in minutes (line, right axis).
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_sessions_started_date_week
+  exploreName: fct_sessions
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_sessions_source
+          values:
+            - simulated
+        - id: complete-days
+          operator: equals
+          target:
+            fieldId: fct_sessions_is_complete_day
+          values:
+            - 1
+      id: filters
+  limit: 500
+  metricOverrides:
+    fct_sessions_avg_session_minutes:
+      formatOptions:
+        round: 1
+        type: number
+  metrics:
+    - fct_sessions_sessions
+    - fct_sessions_avg_session_minutes
+  sorts:
+    - descending: false
+      fieldId: fct_sessions_started_date_week
+  tableCalculations: []
+name: Sessions and session length by week
+slug: players-sessions-weekly
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_sessions_started_date_week
+    - fct_sessions_sessions
+    - fct_sessions_avg_session_minutes
+tableName: fct_sessions
+version: 1

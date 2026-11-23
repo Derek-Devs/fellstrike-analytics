@@ -1,0 +1,12 @@
+# Settings with passwords, the Python environment, event data and build output
+.env
+.venv/
+data/
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+dbt/.user.yml
+agent/logs/
+agent/eval/runs/
+**/__pycache__/
+lightdash/**/.lightdash-metadata.json

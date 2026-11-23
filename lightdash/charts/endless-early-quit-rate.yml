@@ -1,0 +1,42 @@
+chartConfig:
+  config:
+    label: Quit within the first 5 turns
+    selectedField: fct_runs_endless_early_quit_rate
+  type: big_number
+contentType: chart
+description: >
+  Share of matured solo Endless runs abandoned or dropped within their first 5 player turns. A run lost in the
+  opening is not a quit.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions: []
+  exploreName: fct_runs
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_runs_source
+          values:
+            - simulated
+      id: filters
+  limit: 1
+  metricOverrides:
+    fct_runs_endless_early_quit_rate:
+      formatOptions:
+        round: 1
+        type: percent
+  metrics:
+    - fct_runs_endless_early_quit_rate
+  sorts: []
+  tableCalculations: []
+name: Endless early quit rate
+slug: endless-early-quit-rate
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_runs_endless_early_quit_rate
+tableName: fct_runs
+version: 1

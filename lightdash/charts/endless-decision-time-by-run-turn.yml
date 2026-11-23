@@ -1,0 +1,72 @@
+chartConfig:
+  config:
+    eChartsConfig:
+      series:
+        - encode:
+            xRef:
+              field: fct_actions_run_turn
+            yRef:
+              field: fct_actions_median_decision_ms
+          type: line
+      # From zero, so a wobble of a few percent doesn't look like a cliff.
+      yAxis:
+        - min: "0"
+    layout:
+      xField: fct_actions_run_turn
+      yField:
+        - fct_actions_median_decision_ms
+  type: cartesian
+contentType: chart
+description: >
+  The median milliseconds a player thinks before each command, across a solo Endless run's first 10 player turns.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_actions_run_turn
+  exploreName: fct_actions
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_actions_source
+          values:
+            - simulated
+        - id: mode
+          operator: equals
+          target:
+            fieldId: fct_actions_mode
+          values:
+            - endless
+        - id: player
+          operator: equals
+          target:
+            fieldId: fct_actions_actor_side
+          values:
+            - player
+        - id: first-ten
+          operator: lessThanOrEqual
+          target:
+            fieldId: fct_actions_run_turn
+          values:
+            - 10
+      id: filters
+  limit: 500
+  metricOverrides: {}
+  metrics:
+    - fct_actions_median_decision_ms
+  sorts:
+    - descending: false
+      fieldId: fct_actions_run_turn
+  tableCalculations: []
+name: Decision time across the first 10 run turns
+slug: endless-decision-time-by-run-turn
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_actions_run_turn
+    - fct_actions_median_decision_ms
+tableName: fct_actions
+version: 1

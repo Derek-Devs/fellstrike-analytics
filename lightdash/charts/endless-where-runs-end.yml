@@ -1,0 +1,97 @@
+chartConfig:
+  config:
+    eChartsConfig:
+      series:
+        - encode:
+            xRef:
+              field: fct_runs_stage_reached
+            yRef:
+              field: fct_runs_won_runs
+          stack: results
+          type: bar
+        - encode:
+            xRef:
+              field: fct_runs_stage_reached
+            yRef:
+              field: lost_runs
+          stack: results
+          type: bar
+        - encode:
+            xRef:
+              field: fct_runs_stage_reached
+            yRef:
+              field: quit_runs
+          stack: results
+          type: bar
+      # An Endless run ends by stage 23 (every win is there). Left alone, the axis ran to 70.
+      xAxis:
+        - max: "24"
+          min: "0"
+    layout:
+      xField: fct_runs_stage_reached
+      yField:
+        - fct_runs_won_runs
+        - lost_runs
+        - quit_runs
+  type: cartesian
+contentType: chart
+description: >
+  Solo Endless runs that ended, by the stage they ended on: won, lost (or drawn), or abandoned. Runs still going or
+  dropped without an end have no stage, so they aren't here.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_runs_stage_reached
+  exploreName: fct_runs
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_runs_source
+          values:
+            - simulated
+        - id: mode
+          operator: equals
+          target:
+            fieldId: fct_runs_mode
+          values:
+            - endless
+        - id: ended
+          operator: notNull
+          target:
+            fieldId: fct_runs_stage_reached
+          values: []
+      id: filters
+  limit: 500
+  metricOverrides: {}
+  metrics:
+    - fct_runs_runs_started
+    - fct_runs_completed_runs
+    - fct_runs_won_runs
+  sorts:
+    - descending: false
+      fieldId: fct_runs_stage_reached
+  tableCalculations:
+    # Every run here has ended, so completed runs are the won and the lost, and the rest were abandoned.
+    - displayName: Lost or drawn
+      name: lost_runs
+      sql: ${fct_runs_completed_runs} - ${fct_runs_won_runs}
+    - displayName: Abandoned
+      name: quit_runs
+      sql: ${fct_runs_runs_started} - ${fct_runs_completed_runs}
+name: Where Endless runs end
+slug: endless-where-runs-end
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_runs_stage_reached
+    - fct_runs_won_runs
+    - lost_runs
+    - quit_runs
+    - fct_runs_completed_runs
+    - fct_runs_runs_started
+tableName: fct_runs
+version: 1

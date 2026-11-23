@@ -1,0 +1,73 @@
+chartConfig:
+  config:
+    hideRowNumbers: true
+    showTableNames: false
+  type: table
+contentType: chart
+description: >
+  Exposed players in each arm, real and simulated apart, with each arm's share and the sample ratio check. With two
+  arms the chi-square against 50/50 is (n1 - n2)^2 / (n1 + n2). Above 10.83 (p < 0.001) the split is broken and the
+  readout can't be trusted.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_experiment_exposures_experiment_key
+    - fct_experiment_exposures_source
+    - fct_experiment_exposures_variant
+  exploreName: fct_experiment_exposures
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_experiment_exposures_source
+          values:
+            - real
+            - simulated
+      id: filters
+  limit: 500
+  metricOverrides: {}
+  metrics:
+    - fct_experiment_exposures_exposed_players
+  sorts:
+    - descending: false
+      fieldId: fct_experiment_exposures_experiment_key
+    - descending: false
+      fieldId: fct_experiment_exposures_source
+    - descending: false
+      fieldId: fct_experiment_exposures_variant
+  tableCalculations:
+    - displayName: Share
+      format:
+        round: 1
+        type: percent
+      name: arm_share
+      sql: >
+        ${fct_experiment_exposures_exposed_players} * 1.0 / SUM(${fct_experiment_exposures_exposed_players})
+        OVER (PARTITION BY ${fct_experiment_exposures_experiment_key}, ${fct_experiment_exposures_source})
+    # Each arm's row gives the same value: (2n - total)^2 / total equals (n1 - n2)^2 / (n1 + n2).
+    - displayName: Chi-square against 50/50
+      format:
+        round: 2
+        type: number
+      name: sample_ratio_chi_square
+      sql: >
+        POWER(2 * ${fct_experiment_exposures_exposed_players} - SUM(${fct_experiment_exposures_exposed_players})
+        OVER (PARTITION BY ${fct_experiment_exposures_experiment_key}, ${fct_experiment_exposures_source}), 2)
+        * 1.0 / SUM(${fct_experiment_exposures_exposed_players})
+        OVER (PARTITION BY ${fct_experiment_exposures_experiment_key}, ${fct_experiment_exposures_source})
+name: Exposures and the sample ratio check
+slug: experiment-exposures-by-arm
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_experiment_exposures_experiment_key
+    - fct_experiment_exposures_source
+    - fct_experiment_exposures_variant
+    - fct_experiment_exposures_exposed_players
+    - arm_share
+    - sample_ratio_chi_square
+tableName: fct_experiment_exposures
+version: 1

@@ -1,0 +1,136 @@
+chartConfig:
+  config:
+    hideRowNumbers: true
+    showTableNames: false
+  type: table
+contentType: chart
+description: >
+  The secondary and guardrail metrics by arm, real and simulated apart, worked out in Lightdash. First-run rates
+  divide by players whose first run has finished. The early quit rate has a 95% interval, its difference from control,
+  and a two-proportion z. The readout table above is the plan's own reading, primary metric first.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_experiment_exposures_experiment_key
+    - fct_experiment_exposures_source
+    - fct_experiment_exposures_variant
+  exploreName: fct_experiment_exposures
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_experiment_exposures_source
+          values:
+            - real
+            - simulated
+      id: filters
+  limit: 500
+  metricOverrides:
+    fct_experiment_exposures_exp_early_quit_rate:
+      formatOptions:
+        round: 2
+        type: percent
+    fct_experiment_exposures_exp_first_run_win_rate:
+      formatOptions:
+        round: 1
+        type: percent
+    fct_experiment_exposures_exp_founder_fell_rate:
+      formatOptions:
+        round: 1
+        type: percent
+    fct_experiment_exposures_exp_passed_opening_rate:
+      formatOptions:
+        round: 1
+        type: percent
+    fct_experiment_exposures_exp_session_minutes_7d:
+      formatOptions:
+        round: 1
+        type: number
+  metrics:
+    - fct_experiment_exposures_exp_matured_players
+    - fct_experiment_exposures_exp_early_quit_rate
+    - fct_experiment_exposures_exp_passed_opening_rate
+    - fct_experiment_exposures_exp_first_run_win_rate
+    - fct_experiment_exposures_exp_founder_fell_rate
+    - fct_experiment_exposures_exp_session_minutes_7d
+  sorts:
+    - descending: false
+      fieldId: fct_experiment_exposures_experiment_key
+    - descending: false
+      fieldId: fct_experiment_exposures_source
+    - descending: false
+      fieldId: fct_experiment_exposures_variant
+  tableCalculations:
+    # p +/- 1.96 * sqrt(p (1 - p) / n), the normal approximation
+    - displayName: Early quit, 95% low
+      format:
+        round: 2
+        type: percent
+      name: early_quit_low
+      sql: >
+        ${fct_experiment_exposures_exp_early_quit_rate} - 1.96 * SQRT(${fct_experiment_exposures_exp_early_quit_rate}
+        * (1 - ${fct_experiment_exposures_exp_early_quit_rate}) / ${fct_experiment_exposures_exp_matured_players})
+    - displayName: Early quit, 95% high
+      format:
+        round: 2
+        type: percent
+      name: early_quit_high
+      sql: >
+        ${fct_experiment_exposures_exp_early_quit_rate} + 1.96 * SQRT(${fct_experiment_exposures_exp_early_quit_rate}
+        * (1 - ${fct_experiment_exposures_exp_early_quit_rate}) / ${fct_experiment_exposures_exp_matured_players})
+    # Each row against the control row of its own experiment and source. 0 on the control row.
+    - displayName: Early quit, minus control
+      format:
+        round: 2
+        type: percent
+      name: early_quit_vs_control
+      sql: >
+        ${fct_experiment_exposures_exp_early_quit_rate} - MAX(CASE WHEN ${fct_experiment_exposures_variant} =
+        'control' THEN ${fct_experiment_exposures_exp_early_quit_rate} END) OVER (PARTITION BY
+        ${fct_experiment_exposures_experiment_key}, ${fct_experiment_exposures_source})
+    # z = (p - p_control) / sqrt(pooled (1 - pooled) (1/n + 1/n_control)), pooled over both arms
+    - displayName: Early quit, z
+      format:
+        round: 2
+        type: number
+      name: early_quit_z
+      sql: >
+        (${fct_experiment_exposures_exp_early_quit_rate} - MAX(CASE WHEN ${fct_experiment_exposures_variant} =
+        'control' THEN ${fct_experiment_exposures_exp_early_quit_rate} END) OVER (PARTITION BY
+        ${fct_experiment_exposures_experiment_key}, ${fct_experiment_exposures_source}))
+        / NULLIF(SQRT(
+          (SUM(${fct_experiment_exposures_exp_early_quit_rate} * ${fct_experiment_exposures_exp_matured_players})
+            OVER (PARTITION BY ${fct_experiment_exposures_experiment_key}, ${fct_experiment_exposures_source})
+           / SUM(${fct_experiment_exposures_exp_matured_players})
+            OVER (PARTITION BY ${fct_experiment_exposures_experiment_key}, ${fct_experiment_exposures_source}))
+          * (1 - SUM(${fct_experiment_exposures_exp_early_quit_rate} * ${fct_experiment_exposures_exp_matured_players})
+            OVER (PARTITION BY ${fct_experiment_exposures_experiment_key}, ${fct_experiment_exposures_source})
+           / SUM(${fct_experiment_exposures_exp_matured_players})
+            OVER (PARTITION BY ${fct_experiment_exposures_experiment_key}, ${fct_experiment_exposures_source}))
+          * (1.0 / ${fct_experiment_exposures_exp_matured_players} + 1.0 / MAX(CASE WHEN
+            ${fct_experiment_exposures_variant} = 'control' THEN ${fct_experiment_exposures_exp_matured_players} END)
+            OVER (PARTITION BY ${fct_experiment_exposures_experiment_key}, ${fct_experiment_exposures_source}))
+        ), 0)
+name: Outcomes by arm
+slug: experiment-outcomes-by-arm
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_experiment_exposures_experiment_key
+    - fct_experiment_exposures_source
+    - fct_experiment_exposures_variant
+    - fct_experiment_exposures_exp_matured_players
+    - fct_experiment_exposures_exp_early_quit_rate
+    - early_quit_low
+    - early_quit_high
+    - early_quit_vs_control
+    - early_quit_z
+    - fct_experiment_exposures_exp_passed_opening_rate
+    - fct_experiment_exposures_exp_first_run_win_rate
+    - fct_experiment_exposures_exp_founder_fell_rate
+    - fct_experiment_exposures_exp_session_minutes_7d
+tableName: fct_experiment_exposures
+version: 1

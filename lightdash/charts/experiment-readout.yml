@@ -1,0 +1,78 @@
+chartConfig:
+  config:
+    # metric_order is in the query only to sort by.
+    columns:
+      experiment_readout_metric_order:
+        visible: false
+    hideRowNumbers: true
+    showTableNames: false
+  type: table
+contentType: chart
+description: >
+  The readout as the plan sets it (docs/experiment-endless-opening.md), from experiment_readout: each metric by arm,
+  the sample ratio check, and treatment minus control with a 95% interval. Values stay empty until the plan's end date
+  is in the data, so nobody can peek. Real and simulated rows sit apart.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - experiment_readout_experiment_key
+    - experiment_readout_source
+    - experiment_readout_metric_order
+    - experiment_readout_metric_role
+    - experiment_readout_metric
+    - experiment_readout_control_exposed
+    - experiment_readout_treatment_exposed
+    - experiment_readout_sample_ratio_chi_square
+    - experiment_readout_control_value
+    - experiment_readout_treatment_value
+    - experiment_readout_difference
+    - experiment_readout_ci_low
+    - experiment_readout_ci_high
+    - experiment_readout_z
+    - experiment_readout_verdict
+  exploreName: experiment_readout
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: experiment_readout_source
+          values:
+            - real
+            - simulated
+      id: filters
+  limit: 500
+  metricOverrides: {}
+  metrics: []
+  sorts:
+    - descending: false
+      fieldId: experiment_readout_experiment_key
+    - descending: false
+      fieldId: experiment_readout_source
+    - descending: false
+      fieldId: experiment_readout_metric_order
+  tableCalculations: []
+name: Experiment readout
+slug: experiment-readout
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - experiment_readout_experiment_key
+    - experiment_readout_source
+    - experiment_readout_metric_order
+    - experiment_readout_metric_role
+    - experiment_readout_metric
+    - experiment_readout_control_exposed
+    - experiment_readout_treatment_exposed
+    - experiment_readout_sample_ratio_chi_square
+    - experiment_readout_control_value
+    - experiment_readout_treatment_value
+    - experiment_readout_difference
+    - experiment_readout_ci_low
+    - experiment_readout_ci_high
+    - experiment_readout_z
+    - experiment_readout_verdict
+tableName: experiment_readout
+version: 1

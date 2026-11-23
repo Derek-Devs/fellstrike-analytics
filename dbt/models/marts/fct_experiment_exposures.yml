@@ -1,0 +1,190 @@
+models:
+  - name: fct_experiment_exposures
+    description: >
+      One row per player and experiment: their arm, their first exposure, and the outcomes the readout compares. The
+      player is the unit of analysis, so each counts once however many runs they played. Outcomes are those of the
+      player's first exposed run and of the 7 days from their first exposure.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player_id, experiment_key]
+
+    # Lightdash: every chart on this table starts filtered to one source, and the filter can't be removed, only
+    # changed. Simulated until real players arrive.
+    config:
+      meta:
+        default_filters:
+          - source: simulated
+            required: true
+
+    # Metrics count players by the day they were first exposed. Always group by experiment_key and variant: the A/A
+    # test and the real experiment share this table. First-run rates divide by players whose first run has a final
+    # result, the same rule the run rates in fct_runs use.
+    semantic_model:
+      enabled: true
+    agg_time_dimension: exposed_date
+    metrics:
+      - name: exposed_players
+        label: Exposed players
+        description: Players exposed to the experiment. Group by experiment_key and variant.
+        type: simple
+        agg: count_distinct
+        expr: player_id
+      - name: exp_matured_players
+        label: Exposed players with a finished first run
+        description: Exposed players whose first exposed run has a final result. The first-run rates divide by it.
+        type: simple
+        agg: sum
+        expr: first_run_matured
+      - name: exp_early_quits
+        label: First runs quit in the opening
+        description: Exposed players whose first exposed run was quit within its first 5 player turns.
+        type: simple
+        agg: sum
+        expr: first_run_early_quit
+      - name: exp_opening_passes
+        label: First runs past the opening
+        description: Exposed players whose first exposed run reached player turn 6.
+        type: simple
+        agg: sum
+        expr: first_run_passed_opening
+      - name: exp_first_run_wins
+        label: First runs won
+        description: Exposed players whose first exposed run was won.
+        type: simple
+        agg: sum
+        expr: first_run_won
+      - name: exp_founder_falls
+        label: Founders fallen in the opener
+        description: Exposed players whose founder fell in the first battle of their first exposed run.
+        type: simple
+        agg: sum
+        expr: first_run_founder_fell_in_opener
+      - name: exp_session_minutes_7d
+        label: Session minutes in the first 7 days
+        description: >
+          The average minutes played in the 7 days from a player's first exposure, over players whose 7 days are
+          fully in the data. A guardrail.
+        type: simple
+        agg: average
+        expr: session_minutes_7d
+      - name: exp_opening_empty_share
+        label: Empty opening turns, per player
+        description: >
+          The average, over exposed players, of the share of their first exposed run's measured opening turns (its
+          first 5 player turns) in which no unit could reach a foe or a hurt ally. Each player counts once. The
+          primary metric (docs/experiment-endless-opening.md).
+        type: simple
+        agg: average
+        expr: first_run_opening_empty_share
+      - name: exp_early_quit_rate
+        label: First-run early quit rate
+        description: >
+          Share of exposed players whose first exposed run was quit within the opening, of those whose first run
+          has a final result. A secondary metric, read with its interval: it is too rare to test at Fellstrike's size.
+        type: ratio
+        numerator: exp_early_quits
+        denominator: exp_matured_players
+      - name: exp_passed_opening_rate
+        label: First runs past the opening, share
+        description: Share of exposed players whose first exposed run reached player turn 6. Secondary.
+        type: ratio
+        numerator: exp_opening_passes
+        denominator: exp_matured_players
+      - name: exp_first_run_win_rate
+        label: First-run win rate
+        description: Share of exposed players whose first exposed run was won. A guardrail.
+        type: ratio
+        numerator: exp_first_run_wins
+        denominator: exp_matured_players
+      - name: exp_founder_fell_rate
+        label: Founder fell in the opener, share
+        description: Share of exposed players whose founder fell in their first exposed run's first battle. A guardrail.
+        type: ratio
+        numerator: exp_founder_falls
+        denominator: exp_matured_players
+
+    columns:
+      - name: player_experiment_id
+        description: A key made from the player and the experiment.
+        data_tests: [unique, not_null]
+        entity:
+          type: primary
+          name: exposure
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_players')
+                field: player_id
+      - name: experiment_key
+        description: "{{ doc('experiment_key') }}"
+        dimension:
+          type: categorical
+      - name: source
+        description: "{{ doc('source') }}"
+        entity:
+          type: foreign
+          name: source
+      - name: variant
+        description: "{{ doc('experiment_variant') }}"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [control, treatment]
+        dimension:
+          type: categorical
+      - name: bucket
+        description: The player's bucket, 0 to 9999.
+      - name: exposed_at
+        description: The first exposure's event_at.
+      - name: exposed_date
+        description: The UTC day of the first exposure.
+        granularity: day
+        dimension:
+          type: time
+      - name: exposed_runs
+        description: The player's runs exposed to the experiment.
+      - name: first_run_id
+        description: The player's first exposed run.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('fct_runs')
+                field: run_id
+      - name: first_run_difficulty
+        description: That run's difficulty.
+        dimension:
+          type: categorical
+      - name: first_run_result
+        description: That run's result.
+        dimension:
+          type: categorical
+      - name: first_run_matured
+        description: 1 when that run has a final result.
+      - name: first_run_early_quit
+        description: 1 when that run was quit within the opening. A secondary metric.
+      - name: first_run_passed_opening
+        description: 1 when that run has matured and reached a turn past the opening.
+      - name: first_run_won
+        description: 1 when that run was won.
+      - name: first_run_founder_fell_in_opener
+        description: 1 when the founder fell in that run's first battle. A guardrail.
+      - name: first_run_opening_measured
+        description: That run's opening turns (its first 5 player turns) that the device measured for targets.
+      - name: first_run_opening_empty
+        description: Of those, the turns in which no unit could reach a foe or a hurt ally.
+      - name: first_run_opening_empty_share
+        description: >
+          first_run_opening_empty / first_run_opening_measured, the primary metric's value for this player. Null when
+          no opening turn was measured.
+      - name: is_7d_observed
+        description: 1 when the 7 days from the first exposure are fully in the data.
+      - name: session_minutes_7d
+        description: >
+          Minutes in sessions that overlap the 7 days from the first exposure. Null until those 7 days are in the
+          data. A guardrail.
+      - name: sessions_7d
+        description: Sessions that overlap those 7 days. Null until they are in the data.

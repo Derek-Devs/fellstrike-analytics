@@ -1,0 +1,84 @@
+contentType: dashboard
+description: The Endless opening experiment, arm by arm. Today it shows the A/A test on simulated data.
+filters:
+  dimensions: []
+  metrics: []
+  tableCalculations: []
+name: Experiment readout
+slug: experiment-readout
+spaceSlug: fellstrike
+tabs: []
+tiles:
+  - h: 4
+    properties:
+      content: |
+        **The readout comes first,** as the plan (docs/experiment-endless-opening.md) sets it. Its primary metric is
+        each player's share of empty opening turns in their first run. If the sample ratio's chi-square is above 10.83,
+        the split is broken and nothing can be trusted. Values stay empty until the plan's end date is in the data.
+        Real and simulated rows sit side by side and are never added together.
+
+        **Today** the A/A test (`endless_opening_aa`) reads as it should, with no clear difference on any metric. The
+        real experiment (`endless_opening_v1`) waits for its change and its dates.
+      hideFrame: false
+      title: How to read this
+    tabSlug: null
+    type: markdown
+    w: 36
+    x: 0
+    "y": 0
+  - h: 11
+    properties:
+      chartSlug: experiment-readout
+      hideTitle: false
+      title: Experiment readout
+    tabSlug: null
+    tileSlug: experiment-readout
+    type: saved_chart
+    w: 36
+    x: 0
+    "y": 4
+  - h: 6
+    properties:
+      chartSlug: experiment-exposures-by-arm
+      hideTitle: false
+      title: Exposures and the sample ratio check
+    tabSlug: null
+    tileSlug: experiment-exposures-by-arm
+    type: saved_chart
+    w: 18
+    x: 0
+    "y": 15
+  - h: 6
+    properties:
+      chartSlug: experiment-early-quit-by-arm
+      hideTitle: false
+      title: A/A early quit rate by arm
+    tabSlug: null
+    tileSlug: experiment-early-quit-by-arm
+    type: saved_chart
+    w: 18
+    x: 18
+    "y": 15
+  - h: 4
+    properties:
+      chartSlug: experiment-outcomes-by-arm
+      hideTitle: false
+      title: Outcomes by arm
+    tabSlug: null
+    tileSlug: experiment-outcomes-by-arm
+    type: saved_chart
+    w: 36
+    x: 0
+    "y": 21
+  - h: 6
+    properties:
+      chartSlug: experiment-exposures-weekly
+      hideTitle: false
+      title: A/A exposures by week
+    tabSlug: null
+    tileSlug: experiment-exposures-weekly
+    type: saved_chart
+    w: 36
+    x: 0
+    "y": 25
+version: 1

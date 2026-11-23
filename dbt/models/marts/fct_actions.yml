@@ -1,0 +1,187 @@
+models:
+  - name: fct_actions
+    description: >
+      One row per action, any side's, with the damage it did and took. Every point of a battle's damage is in exactly
+      one action. Damage per attack is sum(attack_damage_dealt) / sum(is_attack).
+
+    # Lightdash: every chart on this table starts filtered to one source, and the filter can't be removed, only
+    # changed. Simulated until real players arrive.
+    config:
+      meta:
+        default_filters:
+          - source: simulated
+            required: true
+
+    # Metrics count actions by the day they happened. Group by actor_side to tell the player's from the foes'.
+    semantic_model:
+      enabled: true
+    agg_time_dimension: event_date
+    metrics:
+      - name: actions
+        label: Actions
+        description: Commands carried out, by any side.
+        type: simple
+        agg: count
+        expr: 1
+      - name: attacks
+        label: Attacks
+        description: Actions that were attacks.
+        type: simple
+        agg: sum
+        expr: is_attack
+      - name: attack_damage
+        label: Attack damage
+        description: Damage dealt by attacks.
+        type: simple
+        agg: sum
+        expr: attack_damage_dealt
+      # Not called damage_dealt: Lightdash drops a metric that shares a column's name.
+      - name: action_damage
+        label: Action damage
+        description: Damage the acting side did during its actions, attacks or not (skills, counters, effects).
+        type: simple
+        agg: sum
+        expr: damage_dealt
+      - name: median_decision_ms
+        label: Median decision milliseconds
+        description: The median thinking time before the player's own commands. Other sides' actions have none.
+        type: simple
+        agg: median
+        expr: decision_ms
+      - name: damage_per_attack
+        label: Damage per attack
+        description: Damage dealt by attacks, per attack. Group by actor_class and actor_side to compare.
+        type: ratio
+        numerator: attack_damage
+        denominator: attacks
+      - name: damage_per_action
+        label: Damage per action
+        description: Damage dealt per action of any kind.
+        type: ratio
+        numerator: action_damage
+        denominator: actions
+
+    columns:
+      - name: action_id
+        description: The action event's ID.
+        data_tests: [unique, not_null]
+        entity:
+          type: primary
+          name: action
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('fct_battles')
+                field: battle_id
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: source
+        description: "{{ doc('source') }}"
+        entity:
+          type: foreign
+          name: source
+      - name: event_at
+        description: "{{ doc('event_at') }}"
+      - name: event_date
+        description: "{{ doc('event_date') }}"
+        granularity: day
+        dimension:
+          type: time
+      - name: mode
+        description: "{{ doc('mode') }}"
+        dimension:
+          type: categorical
+      - name: difficulty
+        description: "{{ doc('difficulty') }}"
+        dimension:
+          type: categorical
+      - name: experiment_key
+        description: "{{ doc('experiment_key') }}"
+        dimension:
+          type: categorical
+      - name: experiment_variant
+        description: "{{ doc('experiment_variant') }}"
+        dimension:
+          type: categorical
+      - name: turn_number
+        description: "{{ doc('turn_number') }}"
+        dimension:
+          type: categorical
+      - name: run_turn
+        description: "{{ doc('run_turn') }}"
+        dimension:
+          type: categorical
+      - name: action_seq
+        description: The action's place in the battle.
+      - name: actor_side
+        description: The acting unit's side.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [player, ally, foe, villager]
+        dimension:
+          type: categorical
+      - name: actor_uid
+        description: The acting unit's number.
+      - name: actor_class
+        description: The acting unit's class.
+        dimension:
+          type: categorical
+      - name: actor_level
+        description: The acting unit's level.
+        dimension:
+          type: categorical
+      - name: action_type
+        description: What the command was.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [attack, heal, staff, skill, wait, swap, trade, shove, give_seal, leave, equip, choose, other]
+        dimension:
+          type: categorical
+      - name: skill_id
+        description: The skill used, when there is one.
+        dimension:
+          type: categorical
+      - name: weapon
+        description: The plain weapon used, when there is one.
+        dimension:
+          type: categorical
+      - name: moved_tiles
+        description: Tiles walked before acting.
+      - name: target_side
+        description: The target's side.
+        dimension:
+          type: categorical
+      - name: target_class
+        description: The target's class.
+        dimension:
+          type: categorical
+      - name: outcome
+        description: The strongest that happened.
+        dimension:
+          type: categorical
+      - name: damage_dealt
+        description: Damage the actor's side did during the move.
+      - name: damage_taken
+        description: Damage the other sides did back during the move.
+      - name: hits
+        description: The actor's own blows that landed.
+      - name: misses
+        description: The actor's own blows that missed.
+      - name: crits
+        description: The actor's own blows that crit.
+      - name: target_defeated
+        description: 1 when the target fell.
+      - name: rallied
+        description: Villagers the command rallied.
+      - name: decision_ms
+        description: Thinking time for the player's own commands.
+      - name: is_attack
+        description: 1 for attacks.
+      - name: attack_damage_dealt
+        description: damage_dealt for attacks, 0 for anything else.

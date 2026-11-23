@@ -1,0 +1,56 @@
+chartConfig:
+  config:
+    eChartsConfig:
+      series:
+        - encode:
+            xRef:
+              field: fct_player_days_activity_date_week
+            yRef:
+              field: fct_player_days_active_players
+          type: line
+    layout:
+      xField: fct_player_days_activity_date_week
+      yField:
+        - fct_player_days_active_players
+  type: cartesian
+contentType: chart
+description: Distinct players with any event each week (WAU), weeks from Monday.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_player_days_activity_date_week
+  exploreName: fct_player_days
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_player_days_source
+          values:
+            - simulated
+        - id: complete-days
+          operator: equals
+          target:
+            fieldId: fct_player_days_is_complete_day
+          values:
+            - 1
+      id: filters
+  limit: 500
+  metricOverrides: {}
+  metrics:
+    - fct_player_days_active_players
+  sorts:
+    - descending: false
+      fieldId: fct_player_days_activity_date_week
+  tableCalculations: []
+name: Weekly active players
+slug: players-weekly-active
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_player_days_activity_date_week
+    - fct_player_days_active_players
+tableName: fct_player_days
+version: 1

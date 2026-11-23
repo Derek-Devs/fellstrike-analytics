@@ -1,0 +1,97 @@
+models:
+  - name: fct_sessions
+    description: One row per player session, with its length and the runs begun in it.
+
+    # Lightdash: every chart on this table starts filtered to one source, and the filter can't be removed, only
+    # changed. Simulated until real players arrive.
+    config:
+      meta:
+        default_filters:
+          - source: simulated
+            required: true
+
+    # Metrics count sessions by the day they started.
+    semantic_model:
+      enabled: true
+    agg_time_dimension: started_date
+    metrics:
+      - name: sessions
+        label: Sessions
+        description: Player sessions. A gap of more than 30 minutes between a player's events starts a new one.
+        type: simple
+        agg: count
+        expr: 1
+      - name: avg_session_minutes
+        label: Average session minutes
+        description: The average minutes from a session's first event to its last.
+        type: simple
+        agg: average
+        expr: session_minutes
+
+    columns:
+      - name: session_id
+        description: A key made from the player and the session's number.
+        data_tests: [unique, not_null]
+        entity:
+          type: primary
+          name: session
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_players')
+                field: player_id
+      - name: source
+        description: "{{ doc('source') }}"
+        entity:
+          type: foreign
+          name: source
+      - name: session_number
+        description: The player's sessions counted from 1.
+        dimension:
+          type: categorical
+      - name: is_first_session
+        description: 1 for the player's first session.
+        dimension:
+          type: categorical
+      - name: started_at
+        description: The session's first event_at.
+      - name: ended_at
+        description: The session's last event_at.
+      - name: started_date
+        description: The UTC day the session started.
+        granularity: day
+        dimension:
+          type: time
+      - name: is_complete_day
+        description: >
+          1 when the session started on a day fully in the data, 0 on the source's newest day, which is cut off
+          partway.
+        dimension:
+          type: categorical
+      - name: session_minutes
+        description: Minutes from the session's first event to its last.
+      - name: events
+        description: Events in the session.
+      - name: device_sessions
+        description: Distinct device session IDs inside it.
+      - name: runs_started
+        description: Runs begun in the session.
+      - name: cohort_date
+        description: "{{ doc('cohort_date') }}"
+        granularity: day
+        dimension:
+          type: time
+      - name: days_since_cohort
+        description: "{{ doc('days_since_cohort') }}"
+        dimension:
+          type: categorical
+      - name: experiment_key
+        description: "{{ doc('experiment_key') }}"
+        dimension:
+          type: categorical
+      - name: experiment_variant
+        description: "{{ doc('experiment_variant') }}"
+        dimension:
+          type: categorical

@@ -1,0 +1,81 @@
+chartConfig:
+  config:
+    eChartsConfig:
+      series:
+        - encode:
+            xRef:
+              field: fct_player_retention_cohort_date_week
+            yRef:
+              field: fct_player_retention_d1_retention
+          type: line
+        - encode:
+            xRef:
+              field: fct_player_retention_cohort_date_week
+            yRef:
+              field: fct_player_retention_d7_retention
+          type: line
+    layout:
+      xField: fct_player_retention_cohort_date_week
+      yField:
+        - fct_player_retention_d1_retention
+        - fct_player_retention_d7_retention
+  type: cartesian
+contentType: chart
+description: >
+  Share of each week's new players who came back on day 1 and on day 7. Players whose day 1 or day 7 isn't fully in
+  the data yet are left out, not counted as lost. Cohort weeks of fewer than 30 players are left out, since a few
+  players make the rate swing.
+metricQuery:
+  additionalMetrics: []
+  customDimensions: []
+  dimensions:
+    - fct_player_retention_cohort_date_week
+  exploreName: fct_player_retention
+  filters:
+    dimensions:
+      and:
+        - id: source
+          operator: equals
+          target:
+            fieldId: fct_player_retention_source
+          values:
+            - simulated
+      id: filters
+    metrics:
+      and:
+        - id: enough-players
+          operator: greaterThanOrEqual
+          target:
+            fieldId: fct_player_retention_cohort_players
+          values:
+            - 30
+      id: metric-filters
+  limit: 500
+  metricOverrides:
+    fct_player_retention_d1_retention:
+      formatOptions:
+        round: 1
+        type: percent
+    fct_player_retention_d7_retention:
+      formatOptions:
+        round: 1
+        type: percent
+  metrics:
+    - fct_player_retention_d1_retention
+    - fct_player_retention_d7_retention
+    - fct_player_retention_cohort_players
+  sorts:
+    - descending: false
+      fieldId: fct_player_retention_cohort_date_week
+  tableCalculations: []
+name: D1 and D7 retention by cohort week
+slug: players-retention-by-cohort
+spaceSlug: fellstrike
+tableConfig:
+  columnOrder:
+    - fct_player_retention_cohort_date_week
+    - fct_player_retention_d1_retention
+    - fct_player_retention_d7_retention
+    - fct_player_retention_cohort_players
+tableName: fct_player_retention
+version: 1

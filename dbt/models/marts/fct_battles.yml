@@ -1,0 +1,133 @@
+models:
+  - name: fct_battles
+    description: One row per battle, with its result and its run's mode, difficulty and arm.
+
+    # Lightdash: every chart on this table starts filtered to one source, and the filter can't be removed, only
+    # changed. Simulated until real players arrive.
+    config:
+      meta:
+        default_filters:
+          - source: simulated
+            required: true
+
+    # Metrics count battles by the day they started.
+    semantic_model:
+      enabled: true
+    agg_time_dimension: started_date
+    metrics:
+      - name: battles_started
+        label: Battles started
+        description: Battles begun.
+        type: simple
+        agg: count
+        expr: 1
+      - name: battles_won
+        label: Battles won
+        description: Battles the player's side won.
+        type: simple
+        agg: sum
+        expr: is_won
+      - name: battles_decided
+        label: Battles decided
+        description: Battles played to a result (won, lost or drawn). The battle win rate divides by it.
+        type: simple
+        agg: sum
+        expr: is_decided
+      - name: battle_win_rate
+        label: Battle win rate
+        description: Share of decided battles the player's side won. Battles quit partway are left out.
+        type: ratio
+        numerator: battles_won
+        denominator: battles_decided
+
+    columns:
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests: [unique, not_null]
+        entity:
+          type: primary
+          name: battle
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_runs')
+                field: run_id
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: source
+        description: "{{ doc('source') }}"
+        entity:
+          type: foreign
+          name: source
+      - name: started_at
+        description: The battle_start's event_at.
+      - name: started_date
+        description: The UTC day the battle started.
+        granularity: day
+        dimension:
+          type: time
+      - name: ended_at
+        description: The battle_end's event_at.
+      - name: mode
+        description: "{{ doc('mode') }}"
+        dimension:
+          type: categorical
+      - name: difficulty
+        description: "{{ doc('difficulty') }}"
+        dimension:
+          type: categorical
+      - name: experiment_key
+        description: "{{ doc('experiment_key') }}"
+        dimension:
+          type: categorical
+      - name: experiment_variant
+        description: "{{ doc('experiment_variant') }}"
+        dimension:
+          type: categorical
+      - name: stage
+        description: The run's stage, from 1.
+        dimension:
+          type: categorical
+      - name: stage_kind
+        description: The game's kind of stage.
+        dimension:
+          type: categorical
+      - name: objective
+        description: How the battle is won.
+        dimension:
+          type: categorical
+      - name: turn_format
+        description: The turn order the battle uses.
+        dimension:
+          type: categorical
+      - name: is_resumed
+        description: True when tracking first saw the battle partway through.
+      - name: unit_count
+        description: Units on the field as the battle began.
+      - name: result
+        description: >
+          `won`, `lost` or `draw` from the player's side, `left` when quit partway, `unfinished` when no end has
+          arrived.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [won, lost, draw, left, unfinished]
+        dimension:
+          type: categorical
+      - name: reason
+        description: How it was decided.
+        dimension:
+          type: categorical
+      - name: rounds
+        description: Rounds the battle lasted.
+      - name: player_turns
+        description: The player's turns in the battle.
+      - name: visible_s
+        description: Seconds on screen.
+      - name: is_won
+        description: 1 when the battle was won.
+      - name: is_decided
+        description: 1 when played to a result (won, lost or drawn). Battle win rates divide by it.

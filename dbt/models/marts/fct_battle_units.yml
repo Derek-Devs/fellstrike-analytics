@@ -1,0 +1,131 @@
+models:
+  - name: fct_battle_units
+    description: >
+      One row per unit of the player's company on the field when a battle started, with whether the battle was won
+      and whether the unit fell. A class's battle win rate is sum(battle_won) / sum(battle_decided) by unit_class.
+      Units that join during the battle (summoned skeletons and shades, freed captives, villagers) are not in this
+      table. Their falls are in fct_unit_defeats, which holds every fall.
+
+    # Lightdash: every chart on this table starts filtered to one source, and the filter can't be removed, only
+    # changed. Simulated until real players arrive.
+    config:
+      meta:
+        default_filters:
+          - source: simulated
+            required: true
+
+    # Metrics count a unit's battles by the day the battle started. Grouped by unit_class they compare classes.
+    semantic_model:
+      enabled: true
+    agg_time_dimension: started_date
+    metrics:
+      - name: unit_battles
+        label: Unit battles
+        description: Battles fought by the player's units, one per unit per battle.
+        type: simple
+        agg: count
+        expr: 1
+      - name: unit_battles_won
+        label: Unit battles won
+        description: Unit battles whose battle the player's side won.
+        type: simple
+        agg: sum
+        expr: battle_won
+      - name: unit_battles_decided
+        label: Unit battles decided
+        description: Unit battles whose battle was played to a result.
+        type: simple
+        agg: sum
+        expr: battle_decided
+      - name: unit_falls
+        label: Unit falls
+        description: Unit battles in which the unit fell.
+        type: simple
+        agg: sum
+        expr: fell
+      - name: class_battle_win_rate
+        label: Class battle win rate
+        description: >
+          Share of decided battles won, counted once for each of the player's units in them. Group by unit_class
+          to compare classes. A class that joins strong companies wins more, so read it with stage and difficulty.
+        type: ratio
+        numerator: unit_battles_won
+        denominator: unit_battles_decided
+      - name: unit_fall_rate
+        label: Unit fall rate
+        description: Share of unit battles in which the unit fell. Group by unit_class to compare classes.
+        type: ratio
+        numerator: unit_falls
+        denominator: unit_battles
+
+    columns:
+      - name: battle_unit_id
+        description: A key made from the battle and the unit's place in its list.
+        data_tests: [unique, not_null]
+        entity:
+          type: primary
+          name: battle_unit
+      - name: battle_id
+        description: "{{ doc('battle_id') }}"
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('fct_battles')
+                field: battle_id
+      - name: run_id
+        description: "{{ doc('run_id') }}"
+      - name: player_id
+        description: "{{ doc('player_id') }}"
+      - name: source
+        description: "{{ doc('source') }}"
+        entity:
+          type: foreign
+          name: source
+      - name: started_date
+        description: The UTC day the battle started.
+        granularity: day
+        dimension:
+          type: time
+      - name: mode
+        description: "{{ doc('mode') }}"
+        dimension:
+          type: categorical
+      - name: difficulty
+        description: "{{ doc('difficulty') }}"
+        dimension:
+          type: categorical
+      - name: stage
+        description: The run's stage.
+        dimension:
+          type: categorical
+      - name: stage_kind
+        description: The game's kind of stage.
+        dimension:
+          type: categorical
+      - name: unit_index
+        description: The unit's place in the battle's units list.
+      - name: unit_uid
+        description: The unit's number, kept across the run.
+      - name: unit_class
+        description: >
+          The unit's class as the battle began. A unit can grow into another class during a battle (a peasant into
+          a courier), and win rates count it under the class it started in.
+        dimension:
+          type: categorical
+      - name: unit_level
+        description: The unit's level as the battle began.
+        dimension:
+          type: categorical
+      - name: battle_result
+        description: The battle's result.
+        dimension:
+          type: categorical
+      - name: battle_won
+        description: 1 when the battle was won.
+      - name: battle_decided
+        description: 1 when the battle was played to a result.
+      - name: fell
+        description: >
+          1 when a player unit with this number fell in the battle. Numbers can repeat within a battle in rare cases
+          (about 1 battle in 700 in the simulation), and then both units count as fallen. The test
+          assert_player_unit_numbers_unique_at_battle_start counts those battles.

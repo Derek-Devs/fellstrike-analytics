@@ -1,0 +1,33 @@
+seeds:
+  - name: experiment_plans
+    description: >
+      Each experiment's plan, by source, written before it starts (docs/experiment-endless-opening.md). The readout
+      gives no effect until the planned end date is fully in the data, and counts only players first exposed between
+      the planned dates. Changing a row after launch shows in git's history.
+    config:
+      column_types:
+        planned_start_date: date
+        planned_end_date: date
+        planned_players_per_arm: integer
+    columns:
+      - name: experiment_key
+        description: "{{ doc('experiment_key') }}"
+        data_tests: [not_null]
+      - name: source
+        description: "{{ doc('source') }}"
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [real, simulated]
+      - name: planned_start_date
+        description: The first day a player can be exposed. Empty until launch.
+      - name: planned_end_date
+        description: The last day a player can be exposed, and the day the readout opens. Empty until launch.
+      - name: planned_players_per_arm
+        description: The players per arm the plan expects by the end date. For a pilot, an estimate, not a target.
+      - name: note
+        description: What the row is.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [experiment_key, source]
