@@ -28,7 +28,7 @@ AGENT = pathlib.Path(__file__).resolve().parent
 LOG = pathlib.Path(os.environ.get("AGENT_LOG") or AGENT / "logs" / "tool_calls.jsonl")
 GRAINS = ["day", "week", "month", "quarter", "year"]
 
-# MetricFlow reads the dbt project from the working folder and the warehouse login from analytics/.env. MCP talks
+# MetricFlow reads the dbt project from the working folder and the warehouse login from .env. MCP talks
 # over stdout, so anything dbt prints while it loads goes to stderr instead.
 os.chdir(AGENT.parent / "dbt")
 load_dotenv(AGENT.parent / ".env")
@@ -107,6 +107,8 @@ def where_clause(item, dimensions):
         reference = f"{{{{ Dimension('{item.dimension}') }}}}"
     if item.operator in ("in", "not in"):
         values = item.value if isinstance(item.value, list) else [item.value]
+        if not values:
+            raise ToolError(f"Operator {item.operator} takes at least one value, not an empty list")
         return f"{reference} {item.operator.upper()} ({', '.join(literal(v, kind) for v in values)})"
     if isinstance(item.value, list):
         raise ToolError(f"Operator {item.operator} takes one value, not a list")
