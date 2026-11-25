@@ -4,9 +4,9 @@ Lightdash reads MetricFlow's definitions but writes its own SQL, so the two engi
 every metric by source, and by week and source, and lists any value that differs or that only one side has. It exits
 with 1 when there is one.
 
-Run it from analytics/dbt, with the environment active and Lightdash running:
+Run it from the dbt folder, with the environment active and Lightdash running:
     python ..\\checks\\lightdash_matches_metricflow.py
-It needs LIGHTDASH_API_KEY and LIGHTDASH_PROJECT in analytics/.env.
+It needs LIGHTDASH_API_KEY and LIGHTDASH_PROJECT in .env.
 """
 import json
 import os

@@ -1,4 +1,4 @@
-# The analytics project's Python packages (docs/analytics-design.md). Install into analytics/.venv:
+# The analytics project's Python packages (docs/analytics-design.md). Install into .venv:
 #   py -3.13 -m venv .venv
 #   .venv\Scripts\python -m pip install -r requirements.txt
 
@@ -10,7 +10,7 @@ dbt-core==1.12.7
 dbt-postgres==1.11.0
 dbt-metricflow[postgres]==0.16.0
 
-# Runs a command with analytics/.env's settings: dotenv -f ..\.env run -- dbt build
+# Runs a command with .env's settings: dotenv -f ..\.env run -- dbt build
 python-dotenv[cli]==1.2.4
 
 # The agent's MCP server (agent/server.py). Version 2 calls the server class MCPServer.

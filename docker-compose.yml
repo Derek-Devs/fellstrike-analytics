@@ -1,6 +1,6 @@
 # The analytics warehouse and Lightdash (docs/analytics-design.md, sections 7 and 9). Settings come from
-# analytics/.env (copy .env.example and change every password). Only this PC can reach them: the ports are bound to
-# 127.0.0.1. From the analytics folder:
+# .env (copy .env.example and change every password). Only this PC can reach them: the ports are bound to
+# 127.0.0.1. From this repository's root:
 #   docker compose up -d warehouse                  the warehouse alone, for dbt and MetricFlow
 #   docker compose --profile lightdash up -d        the warehouse and Lightdash, on http://localhost:8080
 #   docker compose run --rm lightdash-cli lightdash ...     the Lightdash CLI

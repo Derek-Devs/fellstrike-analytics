@@ -1,7 +1,7 @@
 sources:
   - name: raw
     description: >
-      The tables analytics/load/load_events.py writes. Real and simulated events never share a table, and
+      The tables load/load_events.py writes. Real and simulated events never share a table, and
       stg_events is the one model that reads both.
     schema: raw
     tables:
@@ -16,7 +16,7 @@ sources:
       - name: events_simulated
         description: >
           Simulated play events from game/scripts/simplay.ts: bot-played runs on the game's own rules, with an assumed
-          behavior model (analytics/sim/behavior.yaml). Same columns as events_real. site is always "sim".
+          behavior model (sim/behavior.yaml). Same columns as events_real. site is always "sim".
         columns:
           - name: event_id
             data_tests: [unique, not_null]

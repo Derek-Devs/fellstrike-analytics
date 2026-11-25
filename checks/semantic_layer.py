@@ -1,6 +1,6 @@
 """Shared by the scripts in checks/: reads the semantic layer's metrics and asks MetricFlow for their numbers.
 
-The scripts run from analytics/dbt with the environment active, and this module loads ../.env for them.
+The scripts run from the dbt folder with the environment active, and this module loads ../.env for them.
 """
 import csv
 import json

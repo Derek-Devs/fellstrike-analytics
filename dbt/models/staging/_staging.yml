@@ -1,4 +1,4 @@
-# Staging: one row per event. The tests here check the event contract (analytics/schema/events.v1.json) from the
+# Staging: one row per event. The tests here check the event contract (schema/events.v1.json) from the
 # warehouse's side: keys that must be unique, and the lists of values each field may hold.
 
 models:

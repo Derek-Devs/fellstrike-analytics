@@ -94,7 +94,7 @@ describes each of them.
 
 You need Docker Desktop running and Python 3.13. Docker Desktop on Windows needs the CPU's virtualization turned on in
 the BIOS (Intel VT-x or AMD-V) and WSL 2 (`wsl --install --no-distribution` in an administrator PowerShell, then a
-restart). From the `analytics` folder:
+restart). From this repository's root:
 
 1. Copy `.env.example` to `.env` and change the password in both lines that hold it.
 2. Start the warehouse: `docker compose up -d warehouse`
@@ -105,24 +105,27 @@ restart). From the `analytics` folder:
 
 **In this public repository,** the data is the simulated events in this repository's release: download
 `simulated-events.zip` from the Releases page, unzip it into `data/simulated/`, and load it as below. Exporting
-real events and running the simulator need the game's private code.
+real events and running the simulator need the game's private code. In the game's repository this project is its
+`analytics` folder, so the game's commands below write to `analytics/data/`.
 
 Real events, from the live server (needs `aws login --profile fellstrike` first, and reads live player data):
 
-1. From the repository's root: `node infra/deploy.mjs events` (or `events 2026-11-24` for those since a day)
-2. From the `analytics` folder: `.venv\Scripts\python load/load_events.py data/real`
+1. From the game repository's root: `node infra/deploy.mjs events` (or `events 2026-11-24` for those since a day)
+2. From this repository's root: `.venv\Scripts\python load/load_events.py data/real`
 
 Events from a local game: run the game server locally (`npm --prefix server run dev`), play with `?analytics=1` on
 the dev server, stop the server, then `node server/.dev/server.mjs events > analytics/data/real/local.jsonl` from the
-root and load as above.
+game repository's root and load as above.
+
+The loader takes only a folder called `real` or `simulated`, and loads it into the table of that name.
 
 `--dry-run` reads and counts the files without touching the warehouse. Loading a file twice adds nothing.
 
 Simulated events, from bot-played runs on the game's own rules:
 
-1. From the `game` folder: `npm run simplay -- --workers=4` (1,200 players by default, about 3.3 hours on 4 workers).
+1. From the game repository's `game` folder: `npm run simplay -- --workers=4` (1,200 players by default, about 3.3 hours on 4 workers).
    `--players=N` for fewer, `--clean` to start over. A stopped run carries on where it left off.
-2. From the `analytics` folder: `.venv\Scripts\python load/load_events.py data/simulated`
+2. From this repository's root: `.venv\Scripts\python load/load_events.py data/simulated`
 
 The players' assumptions (how often they come back, how long they think, when they quit) are in `sim/behavior.yaml`,
 each with its reason. The same seed and settings always give the same events.
@@ -185,7 +188,7 @@ definitions in the dbt project and writes its own SQL for them. It reads the war
 only the marts, and it sends nothing off the PC. Idle, it uses under 1 GB of memory with its database and storage,
 and its image takes about 10 GB of disk.
 
-The first time, from the `analytics` folder:
+The first time, from this repository's root:
 
 1. Start it: `docker compose --profile lightdash up -d`. The first start downloads Lightdash's image, which takes a
    few minutes.
@@ -197,7 +200,7 @@ The first time, from the `analytics` folder:
    Put the project UUID it prints in `.env` as `LIGHTDASH_PROJECT`.
 5. Upload the charts and dashboards: `docker compose run --rm lightdash-cli lightdash upload --force --path /lightdash`
 
-After that, from the `analytics` folder:
+After that, from this repository's root:
 
 | Command | What it does |
 |---|---|
@@ -220,13 +223,13 @@ copy the change into the files rather than committing the download.
 metrics, describe one, and query them through MetricFlow. There is no SQL tool, so every number comes from a defined
 metric, and every answer gives its source and the SQL that ran. Its rules are in `agent/instructions.md`.
 
-To ask it questions in Claude Code, start Claude Code from the `analytics` folder with the server's config:
+To ask it questions in Claude Code, start Claude Code from this repository's root with the server's config:
 `claude --mcp-config agent\mcp.json`. The config's paths are relative to that folder, and the warehouse must be
 running. (If `claude` isn't on your PATH, the Claude desktop app keeps its copy under
 `%LOCALAPPDATA%\Claude-Data\...\claude-code\<version>\`.)
 
 The eval puts 20 questions to the agent, each in a fresh Claude Code session with only the server's tools, and
-scores the answers against plain SQL. From the `analytics` folder, with the environment active:
+scores the answers against plain SQL. From this repository's root, with the environment active:
 
 | Command | What it does |
 |---|---|

@@ -1,6 +1,6 @@
-"""Checks the charts and dashboards in analytics/lightdash/ before they are uploaded (docs/analytics-design.md, 9.3).
+"""Checks the charts and dashboards in lightdash/ before they are uploaded (docs/analytics-design.md, 9.3).
 
-    python checks\\lightdash_content.py        (from the analytics folder)
+    python checks\\lightdash_content.py        (from this repository's root)
 
 It fails when:
 - a chart could add real and simulated numbers together: it must filter source to one value, or group by source so

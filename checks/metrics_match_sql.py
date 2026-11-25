@@ -1,6 +1,6 @@
 """Checks that every MetricFlow metric gives the same number as the plain SQL in dbt/analyses/metric_values.sql.
 
-Run it from analytics/dbt, with the environment active (docs/analytics-design.md, section 8.4):
+Run it from the dbt folder, with the environment active (docs/analytics-design.md, section 8.4):
     python ..\\checks\\metrics_match_sql.py
 It asks MetricFlow for every metric by source, runs the plain SQL, and lists any metric whose numbers differ or that
 only one side has. It exits with 1 when there is one.

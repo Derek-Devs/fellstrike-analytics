@@ -1,4 +1,4 @@
-# Where dbt finds the warehouse. Nothing secret is written here: every value comes from analytics/.env, which git
+# Where dbt finds the warehouse. Nothing secret is written here: every value comes from .env, which git
 # ignores. dbt reads this file because it is in the folder dbt runs from.
 fellstrike:
   target: dev
