@@ -4,10 +4,12 @@
     python load/load_events.py data/simulated         simulated events, from the simulator in game/
     python load/load_events.py data/real --dry-run    read and count the files, connect to nothing
 
-Each folder goes to its own table: raw.events_real or raw.events_simulated. Real and simulated rows never share a
-table, and dbt adds the source column when it unions them. A file holds one JSON event per line (.jsonl or .jsonl.gz).
-Loading a file again changes nothing, because event_id is the key. Every file gets a row in raw.loads, which the source
-freshness test reads. The export's last line, counts of events the server turned away, goes to raw.rejects.
+Each folder goes to its own table: raw.events_real or raw.events_simulated. The folder's name says which, so it must
+be called real or simulated, and any other name is refused. Real and simulated rows never share a table, and dbt adds
+the source column when it unions them. A file holds one JSON event per line (.jsonl or .jsonl.gz). Loading a file
+again adds no events, because event_id is the key. Every file gets a row in raw.loads, which the source freshness test
+reads, and loading a file again updates its row. The export's last line, counts of events the server turned away,
+goes to raw.rejects.
 """
 import gzip
 import json
@@ -28,7 +30,7 @@ def read_lines(path):
 
 
 def warehouse_url():
-    """WAREHOUSE_URL from the environment, or else from analytics/.env."""
+    """WAREHOUSE_URL from the environment, or else from .env."""
     if os.environ.get("WAREHOUSE_URL"):
         return os.environ["WAREHOUSE_URL"]
     env = Path(__file__).resolve().parent.parent / ".env"
@@ -36,7 +38,7 @@ def warehouse_url():
         for line in env.read_text(encoding="utf-8").splitlines():
             if line.startswith("WAREHOUSE_URL="):
                 return line.split("=", 1)[1].strip()
-    sys.exit("Set WAREHOUSE_URL, or copy analytics/.env.example to analytics/.env")
+    sys.exit("Set WAREHOUSE_URL, or copy .env.example to .env")
 
 
 def create_tables(cur, table):
@@ -98,7 +100,8 @@ def load_file(cur, path, table, source):
     newest = max((e["received_at"] for e in events), default=None)
     cur.execute("""
         insert into raw.loads (file, source, rows_in_file, rows_new, newest_received_at) values (%s, %s, %s, %s, %s)
-        on conflict (file) do update set rows_new = excluded.rows_new, loaded_at = now()""",
+        on conflict (file) do update set source = excluded.source, rows_in_file = excluded.rows_in_file,
+            rows_new = excluded.rows_new, newest_received_at = excluded.newest_received_at, loaded_at = now()""",
         [path.name, source, len(events), new_rows, newest])
     return len(events), new_rows
 
@@ -107,7 +110,10 @@ def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     folder = Path(sys.argv[1])
-    source = "simulated" if folder.name == "simulated" else "real"
+    # The folder's name picks the table. Any other name is refused, so simulated events can't land among real ones.
+    source = folder.resolve().name
+    if source not in ("real", "simulated"):
+        sys.exit(f"{folder} must be a folder called real or simulated, so its events go to the right table")
     table = f"events_{source}"
     files = sorted(list(folder.glob("*.jsonl")) + list(folder.glob("*.jsonl.gz")))
     if not files:
