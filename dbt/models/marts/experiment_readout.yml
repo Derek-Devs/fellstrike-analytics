@@ -2,9 +2,10 @@ models:
   - name: experiment_readout
     description: >
       One row per experiment, source and metric: each arm's value, the sample ratio check, and the difference with its
-      95% interval. The effect stays empty until the plan's end date (experiment_plans) is fully in the data and the
-      split passes the sample ratio check, so nobody can peek. Only players first exposed between the plan's dates
-      count. Real and simulated rows are never combined.
+      95% interval. The effect stays empty until the readout date, a week after the plan's end date
+      (experiment_plans), is fully in the data and the split passes the sample ratio check, so nobody can peek. The
+      week lets the last players' 7-day minutes and dropped runs come in. Only players first exposed between the
+      plan's dates count. Real and simulated rows are never combined.
     data_tests:
       - dbt_utils.expression_is_true:
           arguments:
@@ -42,9 +43,13 @@ models:
       - name: planned_start_date
         description: The plan's first day of exposure.
       - name: planned_end_date
-        description: The plan's last day of exposure, and the day the readout opens.
+        description: The plan's last day of exposure.
       - name: planned_players_per_arm
         description: The players per arm the plan expects.
+      - name: readout_date
+        description: >
+          The day the readout opens: a week after the planned end date (or run_quiet_days, if that is longer). By then
+          every player's 7 days have passed and a run that simply stopped counts as dropped.
       - name: data_through
         description: The source's last complete day of data.
       - name: control_exposed
@@ -61,7 +66,7 @@ models:
       - name: sample_ratio_ok
         description: True when the chi-square is 10.83 or less (p of 0.001 or more).
       - name: is_complete
-        description: True once the data reaches the plan's end date.
+        description: True once the data reaches the readout date.
       - name: control_n
         description: Control players the metric counts (for a rate, those whose first run has finished).
       - name: treatment_n

@@ -241,7 +241,7 @@ logs go to `agent/eval/runs/`, which git ignores.
 The Endless opening experiment's plan is `docs/experiment-endless-opening.md`, written before launch, with a launch
 checklist at its end. Its dates and sizes are in `dbt/seeds/experiment_plans.csv`, which `dbt build` loads.
 `experiment_readout` reads it: each metric by arm, the sample ratio check, and the difference with its interval, which
-stays empty until the plan's end date is in the data. The readout is also the first table on Lightdash's Experiment
+stays empty until a week after the plan's end date is in the data. The readout is also the first table on Lightdash's Experiment
 readout dashboard. Today it shows the A/A test, while the real experiment waits for its change.
 
 ## License

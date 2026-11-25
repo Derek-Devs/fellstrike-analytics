@@ -68,8 +68,9 @@ and the secondaries, at the pilot's size, can only hint at whether players cared
 
 The readout won't show an effect early. The plan's dates and sizes are a committed seed, so git's history shows they
 came first. `experiment_readout` shows each arm's counts and the sample ratio check, and keeps every difference,
-interval and z empty until the plan's end date is fully in the data. Only players first exposed between the plan's
-dates count. I tested the gate by moving the A/A test's end date past the data: every value disappeared, and the
+interval and z empty until a week after the plan's end date is fully in the data. The week lets the last players'
+outcomes settle: their 7 days of minutes, and runs that simply stopped, which only count as dropped after 7 quiet
+days. Only players first exposed between the plan's dates count. I tested the gate by moving the A/A test's end date past the data: every value disappeared, and the
 counts stayed. A test also fails if an experiment exposes players without a written plan.
 
 ## 9. How does the agent avoid inventing numbers?

@@ -37,7 +37,7 @@ and it can't show a session, a turn, or the moment a player gives up.
   metric's own dimensions, so a question can't put code into a query. It names its metric, its source and the SQL in
   every answer.
 - **An experiment held to its plan.** I wrote the plan before launch and committed its dates and sizes. The readout
-  shows nothing but counts until the planned end date.
+  shows nothing but counts until a week after the planned end date, once the last players' outcomes are in.
 
 ## Results
 

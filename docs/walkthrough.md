@@ -205,7 +205,8 @@ The plan is [experiment-endless-opening.md](experiment-endless-opening.md), writ
   with about 41 per arm. Early quits stay as a secondary metric, read with intervals.
 - **No peeking:** the plan's dates and sizes are a committed seed (`dbt/seeds/experiment_plans.csv`), so git's
   history shows they came first. `experiment_readout` shows each arm's counts and the sample ratio check, and keeps
-  every effect empty until the plan's end date is in the data. Moving the end date past the data proved it.
+  every effect empty until a week after the plan's end date is in the data, so the last players' 7-day minutes and
+  dropped runs are in. Moving the end date past the data proved it.
 - **The A/A test:**
   - The arms split 602 to 598, a chi-square of 0.01.
   - No metric differs: the primary is 24.21% against 24.19%, ±1.8 points.

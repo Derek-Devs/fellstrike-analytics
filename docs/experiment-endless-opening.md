@@ -87,8 +87,11 @@ and at the pilot's size they are read only as estimates with intervals.
    - Means use Welch's standard error, `sqrt(var_c/n_c + var_t/n_t)`.
    - Rates use the unpooled `sqrt(p_c(1-p_c)/n_c + p_t(1-p_t)/n_t)`.
    - With 20 per arm the normal approximation is rough. The pilot reports it as an estimate.
-3. **No peeking.** Until the planned end date is fully in the data, the readout shows how many players each arm has
-   and the sample ratio check, and nothing else. Only players first exposed between the plan's dates count.
+3. **No peeking.** Until the readout date, a week after the planned end date, is fully in the data, the readout shows
+   how many players each arm has and the sample ratio check, and nothing else. Only players first exposed between the
+   plan's dates count. The week lets the last players' outcomes settle: their 7 days of minutes, and their runs that
+   simply stopped, which only count as dropped after 7 quiet days. Opening on the end date would count the last
+   week's abandoned runs but not its dropped ones.
 4. **Real and simulated apart.** Every row has its source, and the two are never combined.
 
 ## 8. Decision
@@ -108,7 +111,8 @@ Written before launch:
 
 Once the change is built, the simulation runs again with `experiment.key: endless_opening_v1` and
 `treatment_changes_rules: true` in `analytics/sim/behavior.yaml`. Its treatment arm then plays the treatment's rules,
-and a `simulated` row for `endless_opening_v1` goes into `experiment_plans.csv`.
+and a `simulated` row for `endless_opening_v1` goes into `experiment_plans.csv`, with its end date a week before the
+simulation's last day so the readout can open.
 
 What the run can show:
 - **The primary:** empty turns move because the rules move them, so the simulation checks that the change does what
@@ -127,5 +131,5 @@ What the run can show:
 4. Turn tracking on in production (`VITE_ANALYTICS=1`) and set `ENDLESS_OPENING.on` to true in
    `game/src/analytics/experiment.ts`, then deploy. Both need your word.
 5. In the first days, check that exposures arrive and that the sample ratio check passes. The readout shows only those
-   until the end.
-6. The day after the end date, read `experiment_readout` and decide by section 8.
+   until the readout date.
+6. The day after the readout date (the end date plus 7 days), read `experiment_readout` and decide by section 8.

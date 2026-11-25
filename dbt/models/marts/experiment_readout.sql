@@ -1,9 +1,15 @@
 -- The experiment readout (docs/experiment-endless-opening.md): one row per experiment, source and metric, with each
 -- arm's value, the sample ratio check, and the difference with its 95% interval.
 --
--- No peeking: the difference, interval and z stay empty until the plan's end date (seeds/experiment_plans.csv) is
--- fully in the data. Before that the readout shows only how many players each arm has. Only players first exposed
--- between the plan's dates count, so players exposed after the end can't move the answer.
+-- No peeking: the difference, interval and z stay empty until the readout date, a week after the plan's end date
+-- (seeds/experiment_plans.csv), is fully in the data. Before that the readout shows only how many players each arm
+-- has. Only players first exposed between the plan's dates count, so players exposed after the end can't move the
+-- answer.
+--
+-- Why the week: a player exposed on the end date needs 7 more days for their session minutes, and a first run that
+-- simply stopped only counts as dropped after run_quiet_days quiet days. Opening on the end date would count
+-- abandoned runs but not dropped ones from the last week, and the numbers would keep moving after the verdict.
+{% set wait_days = [var('run_quiet_days'), 7] | max %}
 
 with plans as (
     select * from {{ ref('experiment_plans') }}
@@ -110,11 +116,12 @@ checked as (
         plans.planned_start_date,
         plans.planned_end_date,
         plans.planned_players_per_arm,
+        plans.planned_end_date + {{ wait_days }} as readout_date,
         bounds.last_complete_date as data_through,
         -- The sample ratio check against 50/50: with two arms, chi-square = (n_c - n_t)^2 / (n_c + n_t).
         power(arms.control_exposed - arms.treatment_exposed, 2)::numeric
             / nullif(arms.control_exposed + arms.treatment_exposed, 0) as sample_ratio_chi_square,
-        coalesce(bounds.last_complete_date >= plans.planned_end_date, false) as is_complete
+        coalesce(bounds.last_complete_date >= plans.planned_end_date + {{ wait_days }}, false) as is_complete
     from arms
     left join plans
         on plans.experiment_key = arms.experiment_key
@@ -126,9 +133,13 @@ readout as (
     select
         checked.*,
         checked.sample_ratio_chi_square <= 10.83 as sample_ratio_ok,
-        -- What may be read. Effects stay hidden until the plan's end is in the data and the split looks fair.
-        coalesce(checked.is_complete and checked.sample_ratio_chi_square <= 10.83 and checked.standard_error > 0, false)
-            as is_readable
+        -- What may be read. Effects stay hidden until the readout date is in the data and the split looks fair. A
+        -- missing standard error means an arm has too few players. A standard error of 0 is readable: every player
+        -- in each arm had the same outcome (no early quits in either arm, say), so the values show without an interval.
+        coalesce(
+            checked.is_complete and checked.sample_ratio_chi_square <= 10.83 and checked.standard_error is not null,
+            false
+        ) as is_readable
     from checked
 )
 
@@ -143,6 +154,7 @@ select
     planned_start_date,
     planned_end_date,
     planned_players_per_arm,
+    readout_date,
     data_through,
     control_exposed,
     treatment_exposed,
@@ -154,14 +166,16 @@ select
     case when is_readable then control_value end as control_value,
     case when is_readable then treatment_value end as treatment_value,
     case when is_readable then difference end as difference,
-    case when is_readable then difference - 1.96 * standard_error end as ci_low,
-    case when is_readable then difference + 1.96 * standard_error end as ci_high,
-    case when is_readable then difference / standard_error end as z,
+    case when is_readable and standard_error > 0 then difference - 1.96 * standard_error end as ci_low,
+    case when is_readable and standard_error > 0 then difference + 1.96 * standard_error end as ci_high,
+    case when is_readable and standard_error > 0 then difference / standard_error end as z,
     case
         when planned_end_date is null then 'Not started: the plan has no dates yet'
-        when not is_complete then 'Waiting for the planned end, ' || planned_end_date::text
+        when not is_complete then 'Waiting for the readout date, ' || readout_date::text
         when not sample_ratio_ok then 'Sample ratio mismatch: the split is broken, so nothing here can be trusted'
         when not is_readable then 'Too few players to compare'
+        when standard_error = 0 and difference = 0 then 'No difference: every player in both arms had the same outcome'
+        when standard_error = 0 then 'No spread in either arm, so no interval: compare the two values'
         when difference - 1.96 * standard_error > 0 then 'Treatment higher: the interval is above zero'
         when difference + 1.96 * standard_error < 0 then 'Treatment lower: the interval is below zero'
         else 'No clear difference: the interval includes zero'
